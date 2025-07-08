@@ -2,7 +2,7 @@ from flask import Flask, render_template, jsonify, request
 from config import Config
 from models import db
 from data_collector import collect_data, collect_data_for_multiple_cities
-from data_analyzer import get_average_aqi, get_recent_aqi
+from data_analyzer import get_average_aqi, get_recent_aqi, get_aqi_history
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
@@ -27,6 +27,15 @@ def get_city_data(city):
         collect_data(city)  # Collect the latest data
         recent_aqi = get_recent_aqi(city)
         return jsonify({"city": city, "aqi": recent_aqi})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+# Route to get AQI history for the last 24 hours
+@app.route('/data/history/<city>')
+def get_city_history(city):
+    try:
+        history = get_aqi_history(city)
+        return jsonify(history)
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 

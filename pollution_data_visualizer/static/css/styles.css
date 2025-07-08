@@ -1,0 +1,62 @@
+/* Global Styles */
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #121212;
+    color: #fff;
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body.light-mode {
+    background-color: #f4f4f4;
+    color: #000;
+}
+
+.hero-section {
+    background: url('https://source.unsplash.com/1600x900/?city,pollution') center center no-repeat;
+    background-size: cover;
+    padding: 100px 0;
+    position: relative;
+}
+
+.hero-section .overlay {
+    background: rgba(0, 0, 0, 0.6);
+    padding: 50px;
+}
+
+.card {
+    background: #1e1e1e;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    margin-bottom: 20px;
+}
+
+body.light-mode .card {
+    background: #fff;
+}
+
+.card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.3);
+}
+
+.card-title {
+    font-size: 1.5rem;
+    color: #f8d03f;
+}
+
+.card-text {
+    font-size: 1.2rem;
+}
+
+canvas {
+    height: 250px !important;
+    width: 100% !important;
+}
+
+.toggle-switch {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+}
