@@ -3,7 +3,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('cities');
     const searchForm = document.getElementById('search-form');
     const searchInput = document.getElementById('search-input');
+    const suggestions = document.getElementById('suggestions');
     const toggle = document.getElementById('theme-toggle');
+
+    function applyTheme(theme) {
+        if (theme === 'light') {
+            document.body.classList.add('light-mode');
+        } else {
+            document.body.classList.remove('light-mode');
+        }
+    }
+
+    applyTheme(localStorage.getItem('theme'));
 
     function fetchCityData(city) {
         fetch(`/data/${encodeURIComponent(city)}`)
@@ -49,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let card = document.querySelector(`[data-card="${city}"]`);
         if (!card) {
             const col = document.createElement('div');
-            col.className = 'col-md-4';
+            col.className = 'col-md-4 fade-in';
             col.innerHTML = `
                 <div class="card" data-card="${city}">
                     <div class="card-body">
@@ -65,17 +76,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    searchInput.addEventListener('input', () => {
+        showSuggestions(searchInput, suggestions);
+    });
+
     searchForm.addEventListener('submit', e => {
         e.preventDefault();
         const city = searchInput.value.trim();
         if (city) {
             fetchCityData(city);
             searchInput.value = '';
+            suggestions.innerHTML = '';
         }
     });
 
     toggle.addEventListener('click', () => {
-        document.body.classList.toggle('light-mode');
+        const light = document.body.classList.toggle('light-mode');
+        localStorage.setItem('theme', light ? 'light' : 'dark');
     });
 
     cities.forEach(fetchCityData);

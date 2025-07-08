@@ -1,0 +1,7 @@
+body.light-mode {
+  background-color: #f4f4f4;
+  color: #000;
+}
+body.light-mode .card {
+  background: #fff;
+}

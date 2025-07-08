@@ -20,6 +20,11 @@ def setup_database():
 def index():
     return render_template('index.html')
 
+# Simple about page
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
 # Route to get real-time data for a specific city
 @app.route('/data/<city>')
 def get_city_data(city):
@@ -65,6 +70,17 @@ def collect_data_multiple():
     cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco', 'Houston', 'Beijing', 'London']
     collect_data_for_multiple_cities(cities)
     return jsonify({"status": "Data collection for multiple cities is complete!"})
+
+# Provide a summary of average AQI for a list of cities
+@app.route('/api/summary')
+def api_summary():
+    cities = request.args.getlist('city') or ['New York', 'Los Angeles', 'Chicago']
+    result = {}
+    for city in cities:
+        start_date = datetime.now() - timedelta(days=1)
+        avg = get_average_aqi(city, start_date, datetime.now())
+        result[city] = avg
+    return jsonify(result)
 
 if __name__ == "__main__":
     app.run(debug=True)
