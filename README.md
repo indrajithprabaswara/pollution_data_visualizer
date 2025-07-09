@@ -1,7 +1,7 @@
 # Pollution Data Visualizer
 
-This project is a simple Flask web application that collects air quality data from the AQICN API and visualizes it.
-It provides a responsive interface with dark and light themes, global search suggestions, and interactive AQI charts. City cards highlight when added and can be expanded for detailed metrics and advice.
+This project is a Flask web application that collects air quality data from the AQICN API and visualizes it.
+The interface uses Bootstrap together with Tailwind CSS for a modern look. Global search suggestions, animated charts and a theme toggle provide an interactive experience. City cards highlight when added and expand for detailed metrics and advice.
 
 ## Features
 - Search for a city to retrieve its latest Air Quality Index (AQI).
@@ -14,6 +14,8 @@ It provides a responsive interface with dark and light themes, global search sug
 - Basic unit tests for the data collector and application routes.
 - Automatic data refresh every minute for displayed cities.
 - Background scheduler stores AQI data every 30 minutes for all monitored cities.
+- Tailwind CSS styling with gradient hero section and animated typewriter heading.
+- Animated line and pie charts that update smoothly with a toggle to switch chart type.
 
 ## Setup
 1. Install dependencies:

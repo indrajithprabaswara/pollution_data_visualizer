@@ -12,8 +12,8 @@ body.light-mode {
 }
 
 .hero-section {
-    background: url('https://source.unsplash.com/1600x900/?city,pollution') center center no-repeat;
-    background-size: cover;
+    background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)),
+                url('https://source.unsplash.com/1600x900/?city,pollution') center center / cover fixed;
     padding: 100px 0;
     position: relative;
 }
@@ -36,8 +36,25 @@ body.light-mode .card {
 }
 
 .card:hover {
-    transform: scale(1.05);
-    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.3);
+    transform: translateY(-10px) scale(1.05);
+    box-shadow: 0 12px 20px rgba(0, 0, 0, 0.3);
+}
+
+.typewriter {
+    overflow: hidden;
+    border-right: .15em solid #fff;
+    white-space: nowrap;
+    animation: typing 3s steps(40, end), blink-caret .75s step-end infinite;
+}
+
+@keyframes typing {
+    from { width: 0 }
+    to { width: 100% }
+}
+
+@keyframes blink-caret {
+    from, to { border-color: transparent }
+    50% { border-color: #fff }
 }
 
 .card-title {
@@ -99,4 +116,16 @@ canvas {
 .metric-item:hover {
     background-color: rgba(255,255,255,0.1);
     cursor: pointer;
+}
+
+.btn-animated {
+    transition: transform 0.2s ease, background-color 0.3s ease;
+}
+
+.btn-animated:hover {
+    transform: scale(1.05);
+}
+
+.btn-animated:active {
+    transform: scale(0.95);
 }

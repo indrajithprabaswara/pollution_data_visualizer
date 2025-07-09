@@ -2,10 +2,11 @@
 {% block content %}
 <section id="hero" class="hero-section text-center text-white">
     <div class="overlay">
-        <h1 class="display-4 mb-4">Pollution Data Visualizer</h1>
+        <h1 class="display-4 mb-4 typewriter">Welcome to Pollution Data Visualizer</h1>
         <p class="lead mb-4">Track air quality and pollution levels in real-time across multiple cities.</p>
-        <form id="search-form" class="mb-4 position-relative">
+        <form id="search-form" class="mb-4 position-relative d-flex gap-2 justify-content-center">
             <input id="search-input" type="text" class="form-control" placeholder="Enter city name" autocomplete="off" required>
+            <button class="btn btn-success btn-animated" type="submit">Search</button>
             <div id="suggestions" class="list-group position-absolute w-100"></div>
         </form>
     </div>
@@ -23,6 +24,7 @@
   <div class="offcanvas-body" id="detail-content">
     <div class="row">
       <div class="col-md-6">
+        <button id="chartToggle" class="btn btn-primary btn-sm btn-animated mb-2">Toggle Chart</button>
         <canvas id="historyChart"></canvas>
       </div>
       <div class="col-md-6">

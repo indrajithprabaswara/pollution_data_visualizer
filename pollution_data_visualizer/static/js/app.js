@@ -5,6 +5,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('search-input');
     const suggestions = document.getElementById('suggestions');
     const toggle = document.getElementById('theme-toggle');
+    let chartType = 'line';
+    let detailChart = null;
+    let currentCity = '';
 
     function applyTheme(theme) {
         if (theme === 'light') {
@@ -54,15 +57,19 @@ document.addEventListener('DOMContentLoaded', () => {
                                 fill: true
                             }]
                         },
-                        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+                        options: { responsive: true,
+                                   scales: { y: { beginAtZero: true } },
+                                   animation: { duration: 1000 },
+                                   interaction: { mode: 'index', intersect: false } }
                     });
                 }
 
                 const detailCanvas = document.getElementById('historyChart');
                 if (detailCanvas) {
                     const ctx2 = detailCanvas.getContext('2d');
-                    new Chart(ctx2, {
-                        type: 'line',
+                    if (detailChart) detailChart.destroy();
+                    detailChart = new Chart(ctx2, {
+                        type: chartType,
                         data: {
                             labels: labels,
                             datasets: [{
@@ -73,7 +80,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                 fill: true
                             }]
                         },
-                        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+                        options: { responsive: true,
+                                   scales: { y: { beginAtZero: true } },
+                                   animation: { duration: 1000 },
+                                   interaction: { mode: 'index', intersect: false } }
                     });
                 }
 
@@ -133,7 +143,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     data: [counts.good, counts.moderate, counts.bad],
                     backgroundColor: ['green', 'yellow', 'red']
                 }]
-            }
+            },
+            options: { animation: { animateScale: true, animateRotate: true } }
         });
         document.getElementById('bar-good').style.width = `${(counts.good/total)*100}%`;
         document.getElementById('bar-moderate').style.width = `${(counts.moderate/total)*100}%`;
@@ -170,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     { label: 'NO2', backgroundColor: 'rgba(255,206,86,0.6)', data: [no2.good, no2.moderate, no2.bad] }
                 ]
             },
-            options: { responsive: true, scales: { y: { beginAtZero: true } } }
+            options: { responsive: true, scales: { y: { beginAtZero: true } }, animation: { duration: 1000 } }
         });
     }
 
@@ -215,6 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const title = document.getElementById('detailTitle');
         title.textContent = city;
+        currentCity = city;
 
         const card = document.querySelector(`[data-card="${city}"]`);
         animateValue('detail-aqi', parseFloat(card.querySelector('.aqi').textContent), 800);
@@ -251,6 +263,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const light = document.body.classList.toggle('light-mode');
         localStorage.setItem('theme', light ? 'light' : 'dark');
     });
+
+    const toggleBtn = document.getElementById('chartToggle');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', () => {
+            chartType = chartType === 'line' ? 'bar' : 'line';
+            if (currentCity) {
+                fetchCityHistory(currentCity, 168);
+            }
+        });
+    }
 
     document.getElementById('advice').addEventListener('click', () => {
         alert('See more tips on reducing exposure to air pollution.');
