@@ -3,7 +3,7 @@ from flask_socketio import SocketIO
 from prometheus_client import Counter, Gauge, generate_latest
 from events import publish_event, start_consumer
 from config import Config
-from models import db, AirQualityData
+from models import db, PollutionRecord
 from data_collector import collect_data, collect_data_for_multiple_cities
 from data_analyzer import get_average_aqi, get_recent_aqi, get_aqi_history
 from models import User, FavoriteCity
@@ -12,7 +12,8 @@ from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 import os
 
-monitored_cities = ['New York', 'Los Angeles', 'San Francisco', 'Paris', 'Delhi', 'Perth']
+DEFAULT_CITIES = ['New York', 'Los Angeles', 'San Francisco', 'Paris', 'Delhi', 'Perth']
+monitored_cities = DEFAULT_CITIES.copy()
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -33,7 +34,7 @@ def before_request_func():
 
 @app.after_request
 def after_request_func(response):
-    AQI_GAUGE.set(AirQualityData.query.count())
+    AQI_GAUGE.set(PollutionRecord.query.count())
     return response
 
 scheduler = BackgroundScheduler()
@@ -69,6 +70,9 @@ def setup_database():
 @app.route('/')
 def index():
     """Render the main interface."""
+    for city in session.get('tracked_cities', []):
+        if city not in monitored_cities:
+            monitored_cities.append(city)
     return render_template('index.html')
 
 @app.route('/about')
@@ -113,6 +117,18 @@ def get_history_multi():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+@app.route('/data/history')
+def history_all():
+    try:
+        hours = int(request.args.get('hours', 48))
+        cities = DEFAULT_CITIES + session.get('tracked_cities', [])
+        result = {}
+        for city in cities:
+            result[city] = get_aqi_history(city, hours=hours)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
 @app.route('/data/average/<city>')
 def get_average(city):
     try:
@@ -126,9 +142,13 @@ def get_average(city):
 def search():
     city = request.args.get('city')
     if city:
-        collect_data(city) 
+        collect_data(city)
         if city not in monitored_cities:
             monitored_cities.append(city)
+        tracked = session.get('tracked_cities', [])
+        if city not in tracked:
+            tracked.append(city)
+            session['tracked_cities'] = tracked
         history = get_aqi_history(city, hours=1)
         if history:
             socketio.emit('update', {'city': city, **history[-1]})
