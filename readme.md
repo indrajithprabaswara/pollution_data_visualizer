@@ -1,3 +1,5 @@
+Hey, this is the project overview.
+
 # Pollution Data Visualizer
 
 This project is a Flask web application that collects air quality data from the AQICN API and visualizes it.
@@ -56,4 +58,3 @@ This repository uses GitHub Actions for automated testing and delivery.
 The `ci.yml` workflow runs unit and integration tests for both Python and JavaScript
 and builds the Docker image. The `cd.yml` workflow pushes the built image
 to GitHub Container Registry whenever changes land on the `main` branch.
-

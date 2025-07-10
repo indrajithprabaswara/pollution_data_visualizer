@@ -7,7 +7,6 @@ def get_queue():
     """Access the internal event queue (for testing)."""
     return _event_queue
 
-# Simple in-memory publish-subscribe mechanism
 
 def publish_event(event_type, payload=None):
     """Publish an event to the queue."""

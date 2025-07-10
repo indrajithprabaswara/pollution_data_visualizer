@@ -435,7 +435,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     });
 
-                    // Build pollutant comparison
                     const barLabels = ['PM2.5', 'CO', 'NO2'];
                     const barData = selected.map((city,i) => {
                         const avgPm = data[city].reduce((s,h)=>s+(h.pm25||0),0)/data[city].length;

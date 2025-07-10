@@ -10,6 +10,7 @@ from models import User, FavoriteCity
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
+import os
 
 monitored_cities = ['New York', 'Los Angeles', 'San Francisco', 'Paris', 'Delhi', 'Perth']
 
@@ -18,11 +19,9 @@ app.config.from_object(Config)
 db.init_app(app)
 socketio = SocketIO(app, async_mode='threading')
 
-# Prometheus metrics
 REQUEST_COUNT = Counter('request_count', 'Total HTTP requests', ['method', 'endpoint'])
 AQI_GAUGE = Gauge('stored_aqi_records', 'Number of AQI records in the database')
 
-# simple event consumer logs events
 def _log_event(event):
     app.logger.info('event: %s', event)
 
@@ -60,7 +59,6 @@ def setup_database():
     """Ensure database tables exist and start scheduler."""
     db.create_all()
     if not User.query.first():
-        # create a default user for simplicity
         user = User(username='demo', password=generate_password_hash('demo'))
         db.session.add(user)
         db.session.commit()
@@ -73,22 +71,19 @@ def index():
     """Render the main interface."""
     return render_template('index.html')
 
-# Simple about page
 @app.route('/about')
 def about():
     return render_template('about.html')
 
-# User profile page to manage saved cities and alert thresholds
 @app.route('/profile')
 def profile():
     """Display the profile page which manages favorite cities client side."""
     return render_template('profile.html')
 
-# Route to get real-time data for a specific city
 @app.route('/data/<city>')
 def get_city_data(city):
     try:
-        collect_data(city)  # Collect the latest data
+        collect_data(city) 
         history = get_aqi_history(city, hours=1)
         if not history:
             return jsonify({"error": "No data"}), 404
@@ -97,7 +92,6 @@ def get_city_data(city):
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-# Route to get AQI history
 @app.route('/data/history/<city>')
 def get_city_history(city):
     try:
@@ -107,7 +101,6 @@ def get_city_history(city):
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-# Return history for multiple cities
 @app.route('/data/history_multi')
 def get_history_multi():
     try:
@@ -120,7 +113,6 @@ def get_history_multi():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-# Route to get the average AQI for a city in the past 7 days
 @app.route('/data/average/<city>')
 def get_average(city):
     try:
@@ -130,12 +122,11 @@ def get_average(city):
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-# Route to handle search requests
 @app.route('/search', methods=['GET'])
 def search():
     city = request.args.get('city')
     if city:
-        collect_data(city)  # Collect new data for the city
+        collect_data(city) 
         if city not in monitored_cities:
             monitored_cities.append(city)
         history = get_aqi_history(city, hours=1)
@@ -146,14 +137,12 @@ def search():
         return render_template('index.html', city=city, aqi=recent_aqi)
     return render_template('index.html', error="City not found!")
 
-# Collect data for multiple cities (could be triggered on a schedule or manually)
 @app.route('/collect_data_for_multiple')
 def collect_data_multiple():
     cities = ['New York', 'Los Angeles', 'Chicago', 'San Francisco', 'Houston', 'Beijing', 'London']
     collect_data_for_multiple_cities(cities)
     return jsonify({"status": "Data collection for multiple cities is complete!"})
 
-# Provide a summary of average AQI for a list of cities
 @app.route('/api/summary')
 def api_summary():
     cities = request.args.getlist('city') or ['New York', 'Los Angeles', 'Chicago']
@@ -164,7 +153,6 @@ def api_summary():
         result[city] = avg
     return jsonify(result)
 
-# Return coordinates for known cities
 @app.route('/api/coords/<city>')
 def api_coords(city):
     import json, os
@@ -188,7 +176,6 @@ def api_coords(city):
         pass
     return jsonify({'error': 'Unknown city'}), 404
 
-# Return all known coordinates
 @app.route('/api/all_coords')
 def api_all_coords():
     import json, os
@@ -197,10 +184,17 @@ def api_all_coords():
         coords = json.load(f)
     return jsonify(coords)
 
-# Expose metrics for monitoring
 @app.route('/metrics')
 def metrics():
     return generate_latest(), 200, {'Content-Type': 'text/plain'}
 
 if __name__ == "__main__":
-    socketio.run(app, debug=True)
+    port = int(os.environ.get("PORT", 8080))
+    socketio.run(
+        app,
+        debug=False,
+        use_reloader=False,
+        host="0.0.0.0",
+        port=port,
+        allow_unsafe_werkzeug=True
+    )
