@@ -10,7 +10,7 @@ This application reads air quality data and shows it on a simple web page. The c
 - **static/js/app.js** – runs in the browser. It adds cities, fetches history, shows charts and saves favorites in local storage. Theme changes are handled in `applyTheme` at lines 47‑55. Live updates come from the Socket.IO connection at line 14.
 - **static/css/styles.css** – holds the main styles. It defines a dark theme and a light mode toggle around lines 2‑12. Cards grow when hovered as seen at lines 26‑40.
 - **templates/** – HTML templates using Bootstrap and Tailwind CSS. `base.html` contains the common layout and includes the theme toggle button at lines 20‑35. `index.html` shows the search form, map and modal windows for city comparison starting at line 1.
-- **Dockerfile** – builds the container for Cloud Run. It installs Python packages and runs `app.py`.
+- **Dockerfile** – located in `pollution_data_visualizer/`, used for Cloud Run. It installs Python packages and runs `app.py`.
 - **requirements.txt** – lists Python packages required by the server.
 - **wsgi.py** – starts the app with Socket.IO when running under Gunicorn.
 - **city_coords.json** – stores known coordinates so the app can avoid repeated API calls.
@@ -29,7 +29,7 @@ This application reads air quality data and shows it on a simple web page. The c
 - **Unit tests** – earlier commits contained tests but they are not required to run the service. They were located in `pollution_data_visualizer/tests`.
 - **Data persistence** – SQLAlchemy models for readings start at line 5 in `models.py`【F:pollution_data_visualizer/models.py†L5-L40】.
 - **REST collaboration** – JSON endpoints are provided in `app.py` lines 145‑184【F:pollution_data_visualizer/app.py†L145-L184】.
-- **Product environment** – Dockerfile builds an image with all dependencies【F:Dockerfile†L1-L7】.
+- **Product environment** – `pollution_data_visualizer/Dockerfile` builds an image with all dependencies【F:pollution_data_visualizer/Dockerfile†L1-L11】.
 - **Integration tests** – previous commits included `test_integration.py` with Flask test client.
 - **Mock objects** – those tests used `unittest.mock.patch` to replace API calls.
 - **Continuous integration** – GitHub Actions were present before removal. They ran tests and built the Docker image.
@@ -55,7 +55,7 @@ This application reads air quality data and shows it on a simple web page. The c
 3. Open `http://localhost:5000` in your browser.
 4. For Docker or Cloud Run:
    ```bash
-   docker build -t pollution-app .
+   docker build -t pollution-app -f pollution_data_visualizer/Dockerfile pollution_data_visualizer
    docker run -p 8080:5000 pollution-app
    ```
 
@@ -63,5 +63,5 @@ This application reads air quality data and shows it on a simple web page. The c
 - [x] Comments removed from all code files except `get-pip.py`.
 - [x] Report expanded with file descriptions and A‑level evidence.
 - [x] Unneeded files removed (`tests`, Node tests, GitHub workflows, README, notes).
-- [x] Added Dockerfile at project root for Cloud Run deployment.
+- [x] Dockerfile kept in `pollution_data_visualizer` for Cloud Run deployment.
 
