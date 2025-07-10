@@ -51,6 +51,11 @@ Use pytest to run the test suite:
 ```bash
 PYTHONPATH=. pytest -q
 ```
+To run the JavaScript tests:
+```bash
+npm test --silent
+```
+
 
 
 ## Continuous Integration and Delivery
