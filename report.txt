@@ -1,0 +1,67 @@
+This application reads air quality data and shows it on a simple web page. The code lives in the folder `pollution_data_visualizer`.
+
+### What each file does
+- **app.py** – sets up the Flask app. It holds routes, the scheduler and WebSocket updates. Requests are counted and stored metrics are tracked with Prometheus. Lines 21‑35 show these metrics in action. The main routes start at line 68 and include pages for the home screen, about page and profile page. API routes like `/api/summary` and `/api/coords/<city>` appear from line 145.
+- **config.py** – contains settings for the AQI API and the database. The database path is set at lines 9‑11.
+- **data_collector.py** – contacts the AQICN API to fetch air quality values. The function `fetch_air_quality` on lines 7‑21 builds the URL and parses results. `collect_data` on lines 35‑44 saves new data when it is older than the cache time.
+- **data_analyzer.py** – provides helper functions that query the database for averages and recent readings. `get_average_aqi`, `get_recent_aqi` and `get_aqi_history` appear from lines 4‑36.
+- **events.py** – defines a tiny in‑memory queue to publish events. `publish_event` and `start_consumer` on lines 11‑29 let the app send messages when new data is collected or when a user searches.
+- **models.py** – defines SQLAlchemy models. `AirQualityData` represents a reading, and `User` and `FavoriteCity` let users keep favorite locations. These models start at line 5.
+- **static/js/app.js** – runs in the browser. It adds cities, fetches history, shows charts and saves favorites in local storage. Theme changes are handled in `applyTheme` at lines 47‑55. Live updates come from the Socket.IO connection at line 14.
+- **static/css/styles.css** – holds the main styles. It defines a dark theme and a light mode toggle around lines 2‑12. Cards grow when hovered as seen at lines 26‑40.
+- **templates/** – HTML templates using Bootstrap and Tailwind CSS. `base.html` contains the common layout and includes the theme toggle button at lines 20‑35. `index.html` shows the search form, map and modal windows for city comparison starting at line 1.
+- **Dockerfile** – located in `pollution_data_visualizer/`, used for Cloud Run. It installs Python packages and runs `app.py`.
+- **requirements.txt** – lists Python packages required by the server.
+- **wsgi.py** – starts the app with Socket.IO when running under Gunicorn.
+- **city_coords.json** – stores known coordinates so the app can avoid repeated API calls.
+- **get-pip.py** – kept unchanged as requested.
+
+### How the application works
+1. A user visits the home page. If they search for a city, `search` in `app.py` (lines 124‑137) collects data, emits a WebSocket update and records an event.
+2. The browser makes API calls for history, averages or coordinates. These are served by routes starting at line 139 in `app.py`.
+3. Every thirty minutes the scheduler in `app.py` runs `scheduled_collection` to fetch the latest readings for monitored cities and store them in the database.
+4. Metrics for Prometheus are exposed at `/metrics` (lines 186‑188).
+
+### Meeting the A‑level work
+- **Web application** – The Flask routes and pages are defined in `app.py` lines 68‑188【F:pollution_data_visualizer/app.py†L68-L188】.
+- **Data collection** – `fetch_air_quality` and `collect_data` gather and store readings on lines 7‑44 of `data_collector.py`【F:pollution_data_visualizer/data_collector.py†L7-L44】.
+- **Data analyzer** – helper functions appear in `data_analyzer.py` lines 4‑36【F:pollution_data_visualizer/data_analyzer.py†L4-L36】.
+- **Unit tests** – earlier commits contained tests but they are not required to run the service. They were located in `pollution_data_visualizer/tests`.
+- **Data persistence** – SQLAlchemy models for readings start at line 5 in `models.py`【F:pollution_data_visualizer/models.py†L5-L40】.
+- **REST collaboration** – JSON endpoints are provided in `app.py` lines 145‑184【F:pollution_data_visualizer/app.py†L145-L184】.
+- **Product environment** – `pollution_data_visualizer/Dockerfile` builds an image with all dependencies【F:pollution_data_visualizer/Dockerfile†L1-L11】.
+- **Integration tests** – previous commits included `test_integration.py` with Flask test client.
+- **Mock objects** – those tests used `unittest.mock.patch` to replace API calls.
+- **Continuous integration** – GitHub Actions were present before removal. They ran tests and built the Docker image.
+- **Production monitoring** – Prometheus metrics are updated in `before_request_func` and exported in the `/metrics` route at lines 21‑35 and 186‑188 in `app.py`【F:pollution_data_visualizer/app.py†L21-L35】【F:pollution_data_visualizer/app.py†L186-L188】.
+- **Event collaboration messaging** – `publish_event` is called in `scheduled_collection` and in `search` at lines 50‑51 and 134 of `app.py`【F:pollution_data_visualizer/app.py†L50-L51】【F:pollution_data_visualizer/app.py†L134-L134】, and consumed by `_worker` in `events.py` lines 16‑22【F:pollution_data_visualizer/events.py†L16-L22】.
+- **Continuous delivery** – the removed GitHub workflow pushed the Docker image on every main branch update.
+
+### Extra features
+- Real‑time updates are sent to the browser using WebSockets so city cards refresh without a reload.
+- The user can switch between dark and light themes, and preferences are kept in local storage.
+- A Leaflet map shows markers for each monitored city.
+- Favorite cities can be saved in the profile page with optional alert thresholds.
+
+### Running locally
+1. Install Python dependencies:
+   ```bash
+   pip install -r pollution_data_visualizer/requirements.txt
+   ```
+2. Start the server:
+   ```bash
+   python pollution_data_visualizer/app.py
+   ```
+3. Open `http://localhost:5000` in your browser.
+4. For Docker or Cloud Run:
+   ```bash
+   docker build -t pollution-app -f pollution_data_visualizer/Dockerfile pollution_data_visualizer
+   docker run -p 8080:5000 pollution-app
+   ```
+
+### Checklist
+- [x] Comments removed from all code files except `get-pip.py`.
+- [x] Report expanded with file descriptions and A‑level evidence.
+- [x] Unneeded files removed (`tests`, Node tests, GitHub workflows, README, notes).
+- [x] Dockerfile kept in `pollution_data_visualizer` for Cloud Run deployment.
+

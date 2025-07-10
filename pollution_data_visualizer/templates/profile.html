@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+  <h1 class="mb-4">Profile</h1>
+  <table class="table">
+    <thead><tr><th>City</th><th>Alert Threshold</th><th>Remove</th></tr></thead>
+    <tbody id="favorites-body"></tbody>
+  </table>
+  <button id="saveFavs" class="btn btn-primary btn-animated">Save Changes</button>
+</div>
+<script src="{{ url_for('static', filename='js/profile.js') }}"></script>
+{% endblock %}
