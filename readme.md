@@ -31,11 +31,11 @@ The interface uses Bootstrap together with Tailwind CSS for a modern look. Globa
 ## Setup
 1. Install dependencies:
    ```bash
-   pip install -r requirements.txt
+   pip install -r pollution_data_visualizer/requirements.txt
    ```
 2. Run the application:
    ```bash
-   python app.py
+   python pollution_data_visualizer/app.py
    ```
 The application will be available at `http://localhost:5000`.
 Navigate to `/about` for project information. Use `/api/summary` to fetch average AQI for several cities.
@@ -45,6 +45,16 @@ For production, you can start the app with Gunicorn:
 ```bash
 gunicorn -w 4 -k eventlet -b 0.0.0.0:8000 wsgi:app
 ```
+
+### Docker
+
+A `Dockerfile` is located in `pollution_data_visualizer/`. Build and run with:
+
+```bash
+docker build -t pollution-app -f pollution_data_visualizer/Dockerfile pollution_data_visualizer
+docker run -p 8080:5000 pollution-app
+```
+
 
 ## Running Tests
 Use pytest to run the test suite:
@@ -59,7 +69,4 @@ npm test --silent
 
 
 ## Continuous Integration and Delivery
-This repository uses GitHub Actions for automated testing and delivery.
-The `ci.yml` workflow runs unit and integration tests for both Python and JavaScript
-and builds the Docker image. The `cd.yml` workflow pushes the built image
-to GitHub Container Registry whenever changes land on the `main` branch.
+The `ci.yml` workflow runs unit and integration tests. The `cd.yml` workflow builds the image using `pollution_data_visualizer/Dockerfile` and pushes it to GitHub Container Registry when changes land on the `main` branch.
