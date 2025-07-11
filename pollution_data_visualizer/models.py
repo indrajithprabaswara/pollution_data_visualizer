@@ -2,8 +2,8 @@ from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
-class PollutionRecord(db.Model):
-    __tablename__ = 'pollution_records'
+class AirQualityData(db.Model):
+    __tablename__ = 'air_quality_data'
 
     id = db.Column(db.Integer, primary_key=True)
     city = db.Column(db.String(80), nullable=False)

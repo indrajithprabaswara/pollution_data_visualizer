@@ -4,8 +4,6 @@ class Config:
     API_KEY = 'da422a944c1edaa853351550b87c87b02b7563ab'
     BASE_URL = 'https://api.waqi.info/feed/{}/?token=' + API_KEY
 
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev')
-
     FETCH_CACHE_MINUTES = 30
     
     db_path = os.path.join(os.path.dirname(__file__), 'pollution.db')
