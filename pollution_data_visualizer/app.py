@@ -10,7 +10,6 @@ from models import User, FavoriteCity
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import os
-from google.cloud import pubsub_v1
 
 monitored_cities = set(Config.DEFAULT_CITIES)
 
@@ -53,25 +52,14 @@ def collect_all_data(force=False):
             app.logger.warning("Failed to collect data for %s: %s", city, e)
     SCHEDULER_LAST_RUN.set_to_current_time()
 
-def start_pubsub_listener():
-    sub = os.environ.get('PUBSUB_SUBSCRIPTION')
-    if not sub:
-        return
-    subscriber = pubsub_v1.SubscriberClient()
-    def callback(msg):
-        collect_all_data(force=True)
-        msg.ack()
-    subscriber.subscribe(sub, callback=callback)
-
 @app.before_first_request
 def setup_database():
-    """Ensure database tables exist and start scheduler."""
+    """Ensure database tables exist."""
     db.create_all()
     if not User.query.first():
         user = User(username='demo', password=generate_password_hash('demo'))
         db.session.add(user)
         db.session.commit()
-    start_pubsub_listener()
     collect_all_data(force=True)
 
 @app.route('/')
