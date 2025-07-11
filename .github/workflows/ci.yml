@@ -48,4 +48,14 @@ jobs:
       - name: Install JS dependencies
         run: npm ci
       - name: Run JS tests
-        run: npm test --silent
+        run: npm test
+
+      - name: Build Docker image for smoke test
+        run: docker build -t pollution_app_test .
+      - name: Smoke test container
+        run: |
+          docker run -d --name test_cont -e WAQI_TOKEN=dummy -e SECRET_KEY=secret -p 8080:8080 pollution_app_test
+          sleep 5
+          curl -f http://localhost:8080/data/current?city=beijing
+          curl -f http://localhost:8080/data/history
+          docker rm -f test_cont

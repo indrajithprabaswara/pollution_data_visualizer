@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "description": "Pollution data visualizer tests",
   "scripts": {
-    "test": "jest"
+    "test": "jest --coverage"
   },
   "devDependencies": {
     "jest": "^29.6.0",
+    "jest-environment-jsdom": "^29.7.0",
     "jquery": "^3.7.1",
     "jsdom": "^23.0.0"
   }
