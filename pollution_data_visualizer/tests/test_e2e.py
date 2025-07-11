@@ -26,8 +26,15 @@ class TestE2E(unittest.TestCase):
     @patch('data_collector.fetch_air_quality')
     @patch('app.socketio.emit')
     def test_search_and_event(self, mock_emit, mock_fetch):
-        from datetime import datetime
-        mock_fetch.return_value = (75, 22, 0.6, 20, datetime.now())
+        mock_fetch.return_value = [
+            {
+                'location': 'Station',
+                'parameter': 'pm25',
+                'value': 75,
+                'unit': 'µg/m³',
+                'date': {'utc': '2020-01-01T00:00:00Z'}
+            }
+        ]
         resp = self.client.get('/search?city=DemoCity')
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(len(self.events), 1)

@@ -2,7 +2,7 @@ import os
 
 class Config:
     API_KEY = 'da422a944c1edaa853351550b87c87b02b7563ab'
-    BASE_URL = 'https://api.waqi.info/feed/{}/?token=' + API_KEY
+    BASE_URL = 'https://api.openaq.org/v3/measurements'  # updated to OpenAQ v3
 
     FETCH_CACHE_MINUTES = 30
     

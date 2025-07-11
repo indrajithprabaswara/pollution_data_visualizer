@@ -3,7 +3,7 @@ from flask_socketio import SocketIO
 from prometheus_client import Counter, Gauge, generate_latest
 from events import publish_event, start_consumer
 from config import Config
-from models import db, AirQualityData
+from models import db, AirQualityData, Measurement
 from data_collector import collect_data, collect_data_for_multiple_cities
 from data_analyzer import get_average_aqi, get_recent_aqi, get_aqi_history
 from models import User, FavoriteCity
@@ -73,7 +73,7 @@ def index():
 
 @app.route('/about')
 def about():
-    return render_template('about.html')
+    return render_template('about.html', item={'date': {'utc': ''}, 'unit': ''})  # updated to OpenAQ v3
 
 @app.route('/profile')
 def profile():
@@ -100,6 +100,23 @@ def get_city_history(city):
         return jsonify(history)
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+@app.route('/history')
+def history():
+    city = request.args.get('city')
+    if not city:
+        return jsonify([])
+    records = (Measurement.query
+               .filter_by(city=city)
+               .order_by(Measurement.datetime.asc())
+               .all())
+    return jsonify([
+        {
+            'datetime': m.datetime.isoformat(),
+            'value': m.value,
+            'unit': m.unit,
+            'location': m.location
+        } for m in records])  # updated for persistence
 
 @app.route('/data/history_multi')
 def get_history_multi():
