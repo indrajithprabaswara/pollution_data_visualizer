@@ -9,7 +9,7 @@ import requests
 import sys
 import os
 
-API_TOKEN = os.environ.get("WAQI_TOKEN", "")
+API_TOKEN = os.environ["WAQI_TOKEN"]
 BASE_URL = "https://api.waqi.info/feed/{city}/"
 
 def check_city(city: str):

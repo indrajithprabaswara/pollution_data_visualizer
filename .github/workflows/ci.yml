@@ -36,7 +36,10 @@ jobs:
         run: flake8 pollution_data_visualizer || true
       - name: Run Python tests
         run: |
-          PYTHONPATH=. WAQI_TOKEN=dummy SECRET_KEY=test pytest -q
+          PYTHONPATH=. pytest -q
+        env:
+          WAQI_TOKEN: dummy
+          SECRET_KEY: test
 
       - name: Set up Node
         uses: actions/setup-node@v4
