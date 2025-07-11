@@ -41,10 +41,12 @@ jobs:
 
       - name: Deploy to staging
         run: |
-          gcloud run deploy ${{ secrets.GCP_RUN_SERVICE_STAGING }} --image ghcr.io/${{ github.repository }}:latest --region ${{ secrets.GCP_REGION }} --platform managed --quiet
+          gcloud run deploy ${{ secrets.GCP_RUN_SERVICE_STAGING }} --image ghcr.io/${{ github.repository }}:latest --region ${{ secrets.GCP_REGION }} --platform managed --quiet \
+            --set-env-vars WAQI_TOKEN=${{ secrets.WAQI_TOKEN }},SECRET_KEY=${{ secrets.SECRET_KEY }}
           curl -f https://${{ secrets.GCP_RUN_STAGING_URL }}/data/history
           curl -f "https://${{ secrets.GCP_RUN_STAGING_URL }}/data/current?city=Beijing"
 
       - name: Promote to production
         run: |
-          gcloud run deploy ${{ secrets.GCP_RUN_SERVICE }} --image ghcr.io/${{ github.repository }}:latest --region ${{ secrets.GCP_REGION }} --platform managed --quiet
+          gcloud run deploy ${{ secrets.GCP_RUN_SERVICE }} --image ghcr.io/${{ github.repository }}:latest --region ${{ secrets.GCP_REGION }} --platform managed --quiet \
+            --set-env-vars WAQI_TOKEN=${{ secrets.WAQI_TOKEN }},SECRET_KEY=${{ secrets.SECRET_KEY }}

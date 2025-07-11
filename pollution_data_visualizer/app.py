@@ -68,11 +68,6 @@ def setup_database():
         user = User(username='demo', password=generate_password_hash('demo'))
         db.session.add(user)
         db.session.commit()
-    if os.environ.get('USE_LOCAL_SCHEDULER') == '1':
-        from apscheduler.schedulers.background import BackgroundScheduler
-        scheduler = BackgroundScheduler()
-        scheduler.add_job(lambda: collect_all_data(False), 'interval', minutes=30)
-        scheduler.start()
     start_pubsub_listener()
     collect_all_data(force=True)
 

@@ -7,3 +7,4 @@ node_modules
 tests
 tests_js
 .pytest_cache
+report.txt

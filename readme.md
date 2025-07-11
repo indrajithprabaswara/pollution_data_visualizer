@@ -15,7 +15,7 @@ The interface uses Bootstrap together with Tailwind CSS for a modern look. Globa
 - Global city suggestions when searching.
 - Basic unit tests for the data collector and application routes.
 - Automatic data refresh every 30 minutes for displayed cities.
-- Background scheduler stores AQI data every 30 minutes for all monitored cities.
+ - Cloud Scheduler triggers a Pub/Sub message every 30 minutes to collect AQI data.
 - Tailwind CSS styling with gradient hero section and animated typewriter heading.
 - Animated line and pie charts that update smoothly with a toggle to switch chart type.
 - Real-time updates using WebSockets so cards refresh automatically.
@@ -31,7 +31,7 @@ The interface uses Bootstrap together with Tailwind CSS for a modern look. Globa
 ## Setup
 1. Install dependencies:
    ```bash
-   pip install -r pollution_data_visualizer/requirements.txt
+   pip install -r requirements.txt
    ```
 2. Set environment variables and run:
    ```bash
@@ -50,11 +50,11 @@ gunicorn -w 4 -k eventlet -b 0.0.0.0:8000 wsgi:app
 
 ### Docker
 
-A `Dockerfile` is located in `pollution_data_visualizer/`. Build and run with:
+Build and run with:
 
 ```bash
-docker build -t pollution-app -f pollution_data_visualizer/Dockerfile pollution_data_visualizer
-docker run -p 8080:5000 pollution-app
+docker build -t pollution-app .
+docker run -e WAQI_TOKEN=<token> -e SECRET_KEY=<secret> -p8080:8080 pollution-app
 ```
 
 
@@ -71,7 +71,7 @@ npm test --silent
 
 
 ## Continuous Integration and Delivery
-The `ci.yml` workflow runs unit and integration tests. The `cd.yml` workflow builds the image using `pollution_data_visualizer/Dockerfile` and pushes it to GitHub Container Registry when changes land on the `main` branch.
+The `ci.yml` workflow runs unit and integration tests. The `cd.yml` workflow builds the image using the root `Dockerfile` and pushes it to GitHub Container Registry when changes land on the `main` branch.
 
 ## A-Level Requirements Checklist
 
@@ -93,7 +93,7 @@ yourself.
 - **REST collaboration** – JSON endpoints for history, averages and coordinates
   are implemented in `app.py` lines 83‑187【F:pollution_data_visualizer/app.py†L83-L187】.
 - **Product environment** – the Docker image is built using
-  `pollution_data_visualizer/Dockerfile` lines 1‑11【F:pollution_data_visualizer/Dockerfile†L1-L11】.
+  `Dockerfile` lines 1‑15【F:Dockerfile†L1-L15】.
 - **Integration tests** – the full application flow is checked in
   `tests/test_integration.py` lines 19‑30【F:pollution_data_visualizer/tests/test_integration.py†L19-L30】.
 - **Mock objects or test doubles** – `tests/test_e2e.py` uses
