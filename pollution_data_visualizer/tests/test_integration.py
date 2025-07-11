@@ -19,7 +19,16 @@ class TestIntegration(unittest.TestCase):
     @patch('data_collector.fetch_air_quality')
     def test_full_flow(self, mock_fetch):
         from datetime import datetime
-        mock_fetch.return_value = (50, 12, 0.4, 14, datetime.now())
+        ts = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+        mock_fetch.return_value = [
+            {
+                'location': 'Station',
+                'parameter': 'pm25',
+                'value': 50,
+                'unit': 'µg/m³',
+                'date': {'utc': ts}
+            }
+        ]
         resp = self.client.get('/data/Testville')
         self.assertEqual(resp.status_code, 200)
         data = resp.get_json()

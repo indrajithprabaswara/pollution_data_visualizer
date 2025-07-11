@@ -38,3 +38,14 @@ class FavoriteCity(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     city = db.Column(db.String(80), nullable=False)
     alert = db.Column(db.Integer)
+
+
+class Measurement(db.Model):
+    __tablename__ = 'measurements'
+
+    id = db.Column(db.Integer, primary_key=True)
+    city = db.Column(db.String(80), nullable=False)
+    datetime = db.Column(db.DateTime, nullable=False)
+    value = db.Column(db.Float)
+    unit = db.Column(db.String(20))
+    location = db.Column(db.String(128))

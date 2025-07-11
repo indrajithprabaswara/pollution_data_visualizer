@@ -11,22 +11,20 @@ class TestDataCollector(unittest.TestCase):
     @patch('data_collector.requests.get')
     def test_fetch_air_quality(self, mock_get):
         mock_get.return_value.json.return_value = {
-            'status': 'ok',
-            'data': {
-                'aqi': 42,
-                'iaqi': {
-                    'pm25': {'v': 10},
-                    'co': {'v': 0.5},
-                    'no2': {'v': 15}
+            'meta': {'page': 1, 'pages': 1},
+            'results': [
+                {
+                    'location': 'Station',
+                    'parameter': 'pm25',
+                    'value': 12.34,
+                    'unit': 'µg/m³',
+                    'date': {'utc': '2020-01-01T00:00:00Z'}
                 }
-            }
+            ]
         }
-        aqi, pm25, co, no2, timestamp = fetch_air_quality('TestCity')
-        self.assertEqual(aqi, 42)
-        self.assertEqual(pm25, 10)
-        self.assertEqual(co, 0.5)
-        self.assertEqual(no2, 15)
-        self.assertIsNotNone(timestamp)
+        data = fetch_air_quality('TestCity')
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['value'], 12.34)
 
 if __name__ == '__main__':
     unittest.main()

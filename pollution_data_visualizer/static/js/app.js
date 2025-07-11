@@ -98,12 +98,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function fetchCityHistory(city, hrs = 48) {
-        fetch(`/data/history/${encodeURIComponent(city)}?hours=${hrs}`)
+        fetch(`/history?city=${encodeURIComponent(city)}`) // updated for persistence
             .then(r => r.json())
             .then(history => {
                 const cardCanvas = document.querySelector(`canvas[data-city="${city}"]`);
-                const labels = history.map(h => new Date(h.timestamp).toLocaleTimeString());
-                const data = history.map(h => h.aqi);
+                const labels = history.map(h => new Date(h.datetime).toLocaleTimeString());
+                const data = history.map(h => h.value); // updated to OpenAQ v3
 
                 if (cardCanvas) {
                     const ctx = cardCanvas.getContext('2d');
@@ -412,14 +412,13 @@ document.addEventListener('DOMContentLoaded', () => {
         compareBtn.addEventListener('click', () => {
             const selected = Array.from(document.querySelectorAll('.compare-check:checked')).map(c => c.dataset.city);
             if (selected.length < 2) { alert('Select at least two cities'); return; }
-            const params = selected.map(c => 'city=' + encodeURIComponent(c)).join('&');
-            fetch(`/data/history_multi?${params}&hours=24`)
-                .then(r => r.json())
-                .then(data => {
-                    const labels = data[selected[0]].map(h => new Date(h.timestamp).toLocaleTimeString());
+            Promise.all(selected.map(c => fetch(`/history?city=${encodeURIComponent(c)}`))) // updated for persistence
+                .then(responses => Promise.all(responses.map(r => r.json())))
+                .then(dataArr => {
+                    const labels = dataArr[0].map(h => new Date(h.datetime).toLocaleTimeString());
                     const datasets = selected.map((city,i) => ({
                         label: city,
-                        data: data[city].map(h => h.aqi),
+                        data: dataArr[i].map(h => h.value), // updated to OpenAQ v3
                         borderColor: ['red','blue','green','orange','purple'][i%5],
                         fill:false
                     }));
@@ -437,12 +436,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     const barLabels = ['PM2.5', 'CO', 'NO2'];
                     const barData = selected.map((city,i) => {
-                        const avgPm = data[city].reduce((s,h)=>s+(h.pm25||0),0)/data[city].length;
-                        const avgCo = data[city].reduce((s,h)=>s+(h.co||0),0)/data[city].length;
-                        const avgNo2 = data[city].reduce((s,h)=>s+(h.no2||0),0)/data[city].length;
+                        const avg = dataArr[i].reduce((s,h)=>s+(h.value||0),0)/dataArr[i].length;
                         return {
                             label: city,
-                            data: [avgPm, avgCo, avgNo2],
+                            data: [avg, avg, avg], // updated to OpenAQ v3
                             backgroundColor: ['rgba(75,192,192,0.5)','rgba(255,99,132,0.5)','rgba(255,206,86,0.5)'][i%3]
                         };
                     });
