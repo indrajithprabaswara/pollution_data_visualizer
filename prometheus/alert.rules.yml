@@ -1,17 +1,13 @@
 groups:
-- name: aqi-alerts
-  rules:
-  - alert: HighHttpErrorRate
-    expr: sum(rate(http_errors_total[5m])) / sum(rate(request_count_total[5m])) > 0.05
-    for: 5m
-    labels:
-      severity: high
-    annotations:
-      description: HTTP error rate greater than 5% over 5 minutes
-  - alert: SchedulerMissedRuns
-    expr: increase(request_count_total{endpoint="/tasks/collect"}[60m]) == 0
-    for: 60m
-    labels:
-      severity: critical
-    annotations:
-      description: No /tasks/collect calls in the last hour
+  - name: high_error_rate
+    rules:
+      - alert: HighHttpErrorRate
+        expr: rate(http_errors_total[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels: {severity: critical}
+  - name: scheduler_missed_runs
+    rules:
+      - alert: SchedulerMissedRuns
+        expr: increase(tasks_collect_called_total[60m]) < 2
+        for: 10m
+        labels: {severity: warning}

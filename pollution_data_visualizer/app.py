@@ -21,10 +21,11 @@ db.init_app(app)
 socketio = SocketIO(app, async_mode='eventlet')
 app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {'/metrics': make_wsgi_app()})
 
-REQUEST_COUNT = Counter('request_count', 'Total HTTP requests', ['method', 'endpoint', 'status'])
+REQUEST_COUNT = Counter('http_requests_total', 'Total HTTP requests', ['method', 'endpoint', 'status'])
 ERROR_COUNT = Counter('http_errors_total', 'HTTP error responses', ['endpoint', 'status'])
 AQI_GAUGE = Gauge('stored_aqi_records', 'Number of AQI records in the database')
 SCHEDULER_LAST_RUN = Gauge('aqi_job_last_run_seconds', 'Time of last collection run')
+TASKS_COLLECT_CALLED = Counter('tasks_collect_called_total', 'Times the collection task has been triggered')
 
 def _log_event(event):
     app.logger.info('event: %s', event)
@@ -220,6 +221,7 @@ def api_all_coords():
 
 @app.route('/tasks/collect', methods=['POST'])
 def trigger_collect():
+    TASKS_COLLECT_CALLED.inc()
     collect_all_data(force=True)
     return '', 204
 
