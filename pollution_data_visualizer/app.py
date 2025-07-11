@@ -1,6 +1,7 @@
 from flask import Flask, render_template, jsonify, request, redirect, url_for, session
 from flask_socketio import SocketIO
-from prometheus_client import Counter, Gauge, generate_latest
+from prometheus_client import Counter, Gauge, make_wsgi_app
+from werkzeug.middleware.dispatcher import DispatcherMiddleware
 from events import publish_event, start_consumer
 from config import Config
 from models import db, PollutionRecord
@@ -18,6 +19,7 @@ app.config.from_object(Config)
 app.secret_key = app.config['SECRET_KEY']
 db.init_app(app)
 socketio = SocketIO(app, async_mode='eventlet')
+app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {'/metrics': make_wsgi_app()})
 
 REQUEST_COUNT = Counter('request_count', 'Total HTTP requests', ['method', 'endpoint', 'status'])
 ERROR_COUNT = Counter('http_errors_total', 'HTTP error responses', ['endpoint', 'status'])
@@ -221,9 +223,6 @@ def trigger_collect():
     collect_all_data(force=True)
     return '', 204
 
-@app.route('/metrics')
-def metrics():
-    return generate_latest(), 200, {'Content-Type': 'text/plain'}
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
