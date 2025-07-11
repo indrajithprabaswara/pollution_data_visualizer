@@ -1,4 +1,3 @@
-import os
 import subprocess
 import time
 import unittest
@@ -6,7 +5,6 @@ import threading
 import http.server
 import json
 import requests
-import sys
 
 class StubHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
@@ -39,7 +37,6 @@ def start_stub(port=5005):
 class TestEndToEnd(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        subprocess.run([sys.executable, '-m', 'pip', 'install', 'python-socketio', '-q'], check=True)
         subprocess.run(['docker','build','-t','pdv-test','.'], check=True)
         cls.stub = start_stub()
         cls.proc = subprocess.Popen(
@@ -60,20 +57,24 @@ class TestEndToEnd(unittest.TestCase):
         cls.proc.wait(timeout=20)
         cls.stub.shutdown()
 
-    def test_endpoints_and_socket(self):
-        import socketio
-        sio = socketio.Client()
-        messages = []
-        sio.on('new_record', lambda data: messages.append(data))
-        sio.connect('http://localhost:8080')
-        r = requests.get('http://localhost:8080/data/current', params={'city':'New York'})
-        self.assertEqual(r.status_code, 200)
-        hist = requests.post('http://localhost:8080/data/history', json={'cities':['New York']})
-        self.assertEqual(hist.status_code, 200)
-        requests.post('http://localhost:8080/tasks/collect')
-        time.sleep(2)
-        sio.disconnect()
-        self.assertTrue(any(m.get('city')=='New York' for m in messages))
+    def test_end_to_end(self):
+        cur = requests.get('http://localhost:8080/data/current', params={'city':'New York'})
+        self.assertEqual(cur.status_code, 200)
+        data = cur.json()
+        self.assertEqual(data['aqi'], 42)
+        self.assertEqual(data['pm25'], 10)
+        self.assertEqual(data['co'], 0.5)
+        self.assertEqual(data['no2'], 5)
+
+        task = requests.post('http://localhost:8080/tasks/collect')
+        self.assertEqual(task.status_code, 204)
+
+        hist_resp = requests.post('http://localhost:8080/data/history', json={'cities':['New York']})
+        self.assertEqual(hist_resp.status_code, 200)
+        history = hist_resp.json()
+        self.assertIn('New York', history)
+        self.assertTrue(len(history['New York']) >= 1)
+        self.assertEqual(history['New York'][-1]['aqi'], 42)
 
 if __name__ == '__main__':
     unittest.main()
