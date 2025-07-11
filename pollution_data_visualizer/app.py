@@ -18,9 +18,10 @@ app = Flask(__name__)
 app.config.from_object(Config)
 app.secret_key = app.config['SECRET_KEY']
 db.init_app(app)
-socketio = SocketIO(app, async_mode='threading')
+socketio = SocketIO(app, async_mode='eventlet')
 
-REQUEST_COUNT = Counter('request_count', 'Total HTTP requests', ['method', 'endpoint'])
+REQUEST_COUNT = Counter('request_count', 'Total HTTP requests', ['method', 'endpoint', 'status'])
+ERROR_COUNT = Counter('http_errors_total', 'HTTP error responses', ['endpoint', 'status'])
 AQI_GAUGE = Gauge('stored_aqi_records', 'Number of AQI records in the database')
 SCHEDULER_LAST_RUN = Gauge('aqi_job_last_run_seconds', 'Time of last collection run')
 
@@ -31,11 +32,13 @@ start_consumer(_log_event)
 
 @app.before_request
 def before_request_func():
-    REQUEST_COUNT.labels(request.method, request.path).inc()
     session.setdefault('tracked_cities', [])
 
 @app.after_request
 def after_request_func(response):
+    REQUEST_COUNT.labels(request.method, request.path, str(response.status_code)).inc()
+    if response.status_code >= 400:
+        ERROR_COUNT.labels(request.path, str(response.status_code)).inc()
     AQI_GAUGE.set(PollutionRecord.query.count())
     return response
 
@@ -127,11 +130,16 @@ def get_city_history(city):
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-@app.route('/data/history')
+@app.route('/data/history', methods=['GET', 'POST'])
 def history_all():
     hours = int(request.args.get('hours', 8760))
-    cities = set(Config.DEFAULT_CITIES)
-    cities.update(session.get('tracked_cities', []))
+    cities = []
+    if request.method == 'POST':
+        data = request.get_json(silent=True) or {}
+        cities = data.get('cities', [])
+    if not cities:
+        cities = set(Config.DEFAULT_CITIES)
+        cities.update(session.get('tracked_cities', []))
     result = {c: get_aqi_history(c, hours=hours) for c in cities}
     return jsonify(result)
 

@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from models import db, PollutionRecord
 from events import publish_event
 from cachetools import TTLCache
+from prometheus_client import Counter
 
 class TokenBucket:
     def __init__(self, rate, capacity):
@@ -39,6 +40,8 @@ class TokenBucket:
 
 bucket = TokenBucket(16, 60)
 _cache = TTLCache(maxsize=64, ttl=300)
+COLLECTION_SUCCESS = Counter('collection_success_total', 'Successful data collections')
+COLLECTION_FAILURE = Counter('collection_failure_total', 'Failed data collections')
 
 def fetch_air_quality(city):
     if city in Config.DEFAULT_CITIES:
@@ -87,16 +90,17 @@ def save_air_quality_data(city, aqi, pm25, co, no2, timestamp):
     )
     db.session.add(air_quality_data)
     db.session.commit()
+    COLLECTION_SUCCESS.inc()
     try:
         from app import socketio
-        socketio.emit('update', {
+        socketio.emit('new_record', {
             'city': city,
             'timestamp': timestamp.isoformat(),
             'aqi': aqi,
             'pm25': pm25,
             'co': co,
             'no2': no2,
-        })
+        }, namespace='/')
     except Exception:
         pass
     publish_event('aqi_collected', {'city': city, 'aqi': aqi})
@@ -109,7 +113,11 @@ def collect_data(city, max_age_minutes=Config.FETCH_CACHE_MINUTES):
     )
     if latest and datetime.now() - latest.timestamp < timedelta(minutes=max_age_minutes):
         return
-    aqi, pm25, co, no2, timestamp = fetch_air_quality(city)
+    try:
+        aqi, pm25, co, no2, timestamp = fetch_air_quality(city)
+    except Exception:
+        COLLECTION_FAILURE.inc()
+        raise
     save_air_quality_data(city, aqi, pm25, co, no2, timestamp)
 
 def collect_data_for_multiple_cities(cities):
