@@ -82,15 +82,20 @@ def profile():
 
 @app.route('/data/<city>')
 def get_city_data(city):
-    try:
-        collect_data(city) 
-        history = get_aqi_history(city, hours=1)
-        if not history:
-            return jsonify({"error": "No data"}), 404
-        latest = history[-1]
-        return jsonify(latest)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
+    collect_data(city)
+    records = (Measurement.query
+               .filter_by(city=city)
+               .order_by(Measurement.utc_datetime.asc())
+               .all())  # updated to OpenAQ v3
+    return jsonify([
+        {
+            'city': m.city,
+            'location': m.location,
+            'value': m.value,
+            'unit': m.unit,
+            'utc_datetime': m.utc_datetime.isoformat()
+        } for m in records
+    ])
 
 @app.route('/data/history/<city>')
 def get_city_history(city):
@@ -108,11 +113,11 @@ def history():
         return jsonify([])
     records = (Measurement.query
                .filter_by(city=city)
-               .order_by(Measurement.datetime.asc())
-               .all())
+               .order_by(Measurement.utc_datetime.asc())
+               .all())  # updated to OpenAQ v3
     return jsonify([
         {
-            'datetime': m.datetime.isoformat(),
+            'utc_datetime': m.utc_datetime.isoformat(),
             'value': m.value,
             'unit': m.unit,
             'location': m.location
@@ -215,8 +220,3 @@ if __name__ == "__main__":
         port=port,
         allow_unsafe_werkzeug=True
     )
-
-@app.route('/data/<city>')
-def data_proxy(city):
-    # updated for backward compatibility: proxy to history endpoint
-    return get_history()

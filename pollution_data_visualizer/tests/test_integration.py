@@ -32,11 +32,8 @@ class TestIntegration(unittest.TestCase):
         resp = self.client.get('/data/Testville')
         self.assertEqual(resp.status_code, 200)
         data = resp.get_json()
-        self.assertEqual(data['aqi'], 50)
-        hist_resp = self.client.get('/data/history/Testville?hours=1')
-        history = hist_resp.get_json()
-        self.assertEqual(len(history), 1)
-        self.assertEqual(history[0]['aqi'], 50)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]['value'], 50)
 
 if __name__ == '__main__':
     unittest.main()

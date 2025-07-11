@@ -45,7 +45,7 @@ class Measurement(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     city = db.Column(db.String(80), nullable=False)
-    datetime = db.Column(db.DateTime, nullable=False)
+    utc_datetime = db.Column(db.DateTime, nullable=False)  # updated to OpenAQ v3
     value = db.Column(db.Float)
     unit = db.Column(db.String(20))
     location = db.Column(db.String(128))
