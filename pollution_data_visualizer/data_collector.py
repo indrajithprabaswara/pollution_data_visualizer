@@ -7,7 +7,7 @@ def fetch_air_quality(city):
     page = 1
     results = []
     while True:
-        response = requests.get(Config.BASE_URL, params={'city': city, 'limit': 100, 'page': page})
+        response = requests.get(Config.BASE_URL, params={'city': city, 'limit': 100, 'page': page})  # updated to OpenAQ v3
         data = response.json()
         results.extend(data.get('results', []))
         if page >= data.get('meta', {}).get('pages', 1):
@@ -34,7 +34,7 @@ def save_air_quality_data(city, results):
         dt = datetime.fromisoformat(item['date']['utc'].replace('Z', '+00:00')).replace(tzinfo=None)
         measurement = Measurement(
             city=city,
-            datetime=dt,
+            utc_datetime=dt,  # updated to OpenAQ v3
             value=item.get('value'),
             unit=item.get('unit'),
             location=item.get('location'),
