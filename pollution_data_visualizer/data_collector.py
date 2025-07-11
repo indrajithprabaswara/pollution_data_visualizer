@@ -6,6 +6,7 @@ from urllib.parse import quote
 from datetime import datetime, timedelta
 from models import db, PollutionRecord
 from events import publish_event
+from cachetools import TTLCache
 
 class TokenBucket:
     def __init__(self, rate, capacity):
@@ -15,35 +16,41 @@ class TokenBucket:
         self.timestamp = time.monotonic()
         self.lock = threading.Lock()
 
-    def consume(self, tokens=1):
-        with self.lock:
-            now = time.monotonic()
-            self.tokens = min(self.capacity, self.tokens + (now - self.timestamp) * self.rate)
-            self.timestamp = now
-            if self.tokens >= tokens:
-                self.tokens -= tokens
-                return True
-        return False
+    def _add_tokens(self):
+        now = time.monotonic()
+        self.tokens = min(self.capacity, self.tokens + (now - self.timestamp) * self.rate)
+        self.timestamp = now
 
-    def wait(self, tokens=1):
-        while not self.consume(tokens):
+    def acquire(self, tokens=1):
+        while True:
+            with self.lock:
+                self._add_tokens()
+                if self.tokens >= tokens:
+                    self.tokens -= tokens
+                    return
             time.sleep(max(0, 1 / self.rate))
+
+    def __enter__(self):
+        self.acquire()
+
+    def __exit__(self, exc_type, exc, tb):
+        pass
 
 
 bucket = TokenBucket(16, 60)
-_cache = {}
-CACHE_TTL = 300
+_cache = TTLCache(maxsize=64, ttl=300)
 
 def fetch_air_quality(city):
-    cached = _cache.get(city)
-    if cached and time.time() - cached['time'] < CACHE_TTL:
-        return cached['data']
+    if city in Config.DEFAULT_CITIES:
+        cached = _cache.get(city)
+        if cached:
+            return cached
 
     url = Config.BASE_URL.format(quote(city))
     tries = 0
     while tries < 3:
-        bucket.wait()
-        resp = requests.get(url, allow_redirects=True, timeout=10)
+        with bucket:
+            resp = requests.get(url, allow_redirects=True, timeout=10)
         if resp.status_code in (429,) or 300 <= resp.status_code < 400:
             time.sleep(2 ** tries)
             tries += 1
@@ -63,7 +70,8 @@ def fetch_air_quality(city):
         no2 = iaqi.get("no2", {}).get("v")
         timestamp = datetime.now()
         result = (aqi, pm25, co, no2, timestamp)
-        _cache[city] = {'time': time.time(), 'data': result}
+        if city in Config.DEFAULT_CITIES:
+            _cache[city] = result
         return result
     else:
         raise Exception(f"Failed to fetch data for {city}. Error: {data.get('data', {}).get('error', 'Unknown error')}")

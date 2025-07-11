@@ -1,10 +1,5 @@
-__pycache__
-*.pyc
-*.pyo
-*.db
-node_modules
 .git
-tests
-tests_js
-.pytest_cache
-report.txt
+__pycache__
+pollution.db
+get-pip.py
+tests/
