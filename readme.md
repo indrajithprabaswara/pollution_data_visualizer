@@ -73,6 +73,9 @@ npm test --silent
 ## Continuous Integration and Delivery
 The `ci.yml` workflow runs unit and integration tests. The `cd.yml` workflow builds the image using the root `Dockerfile` and pushes it to GitHub Container Registry when changes land on the `main` branch.
 
+## Policy & Attribution
+The application queries the WAQI service which allows up to 1,000 requests per day for free users. Contact `support@example.com` for questions about data usage. Data sourced from World Air Quality Index Project and EPA.
+
 ## A-Level Requirements Checklist
 
 The project implements every item from the A-level specification. Each entry
