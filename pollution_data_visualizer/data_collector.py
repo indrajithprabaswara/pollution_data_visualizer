@@ -8,6 +8,8 @@ from models import db, PollutionRecord
 from events import publish_event
 from cachetools import TTLCache
 from prometheus_client import Counter
+from contextlib import contextmanager
+from token_bucket import Limiter, MemoryStorage
 
 class TokenBucket:
     def __init__(self, rate, capacity):
@@ -37,8 +39,23 @@ class TokenBucket:
     def __exit__(self, exc_type, exc, tb):
         pass
 
+class _BucketWrapper:
+    def __init__(self, rate, capacity):
+        self._rate = rate
+        self._limiter = Limiter(rate, capacity, MemoryStorage())
 
-bucket = TokenBucket(16, 60)
+    @contextmanager
+    def consume(self, tokens=1):
+        while not self._limiter.consume(b'global', tokens):
+            time.sleep(1 / self._rate)
+        try:
+            yield
+        finally:
+            pass
+
+bucket = _BucketWrapper(16, 60)
+
+
 _cache = TTLCache(maxsize=64, ttl=300)
 COLLECTION_SUCCESS = Counter('collection_success_total', 'Successful data collections')
 COLLECTION_FAILURE = Counter('collection_failure_total', 'Failed data collections')
@@ -52,7 +69,7 @@ def fetch_air_quality(city):
     url = Config.BASE_URL.format(quote(city))
     tries = 0
     while tries < 3:
-        with bucket:
+        with bucket.consume(1):
             resp = requests.get(url, allow_redirects=True, timeout=10)
         if resp.status_code in (429,) or 300 <= resp.status_code < 400:
             time.sleep(2 ** tries)

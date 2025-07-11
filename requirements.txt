@@ -11,3 +11,4 @@ prometheus-client==0.17.1
 google-cloud-pubsub==2.21.0
 cachetools==5.3.1
 
+token-bucket==0.3.0
