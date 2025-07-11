@@ -1,0 +1,47 @@
+.fade-in {
+  animation: fadeIn 0.3s ease-in forwards;
+  opacity: 0;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+.highlight {
+  animation: highlight 2s ease-out forwards;
+  border: 3px solid #39ff14;
+  box-shadow: 0 0 15px 5px #39ff14;
+}
+
+@keyframes highlight {
+  from {
+    box-shadow: 0 0 25px 8px #39ff14;
+  }
+  to {
+    box-shadow: none;
+  }
+}
+
+.neon-glow {
+  animation: neonGlow 1s ease-in-out infinite alternate;
+}
+
+.card-hover {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-10px) scale(1.05);
+  box-shadow: 0 12px 20px rgba(0,0,0,0.3);
+}
+
+@keyframes neonGlow {
+  from {
+    text-shadow: 0 0 5px #39ff14, 0 0 10px #39ff14;
+  }
+  to {
+    text-shadow: 0 0 20px #39ff14, 0 0 30px #39ff14;
+  }
+}

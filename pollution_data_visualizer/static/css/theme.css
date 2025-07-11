@@ -1,0 +1,17 @@
+body.light-mode {
+  background-color: #f4f4f4;
+  color: #000;
+}
+body.light-mode .card {
+  background: #fff;
+}
+
+.offcanvas {
+  background-color: #1e1e1e;
+  color: #fff;
+}
+
+body.light-mode .offcanvas {
+  background-color: #fff;
+  color: #000;
+}
