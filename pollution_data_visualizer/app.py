@@ -215,3 +215,8 @@ if __name__ == "__main__":
         port=port,
         allow_unsafe_werkzeug=True
     )
+
+@app.route('/data/<city>')
+def data_proxy(city):
+    # updated for backward compatibility: proxy to history endpoint
+    return get_history()
