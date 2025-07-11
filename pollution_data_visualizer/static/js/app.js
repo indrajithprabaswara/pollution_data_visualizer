@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const cities = [];
-    const historyMap = {};
+    const cities = ['New York', 'Los Angeles', 'San Francisco', 'Paris', 'Delhi', 'Perth'];
     const container = document.getElementById('cities');
     const searchForm = document.getElementById('search-form');
     const searchInput = document.getElementById('search-input');
@@ -55,21 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     applyTheme(localStorage.getItem('theme'));
 
-    fetch('/data/history')
-        .then(r => r.json())
-        .then(all => {
-            Object.entries(all).forEach(([city, history]) => {
-                if (!cities.includes(city)) cities.push(city);
-                historyMap[city] = history;
-                const latest = history[history.length - 1];
-                renderCityCard(city, latest, false);
-                drawHistory(city, history);
-                fetchCoords(city, latest.aqi);
-                setInterval(() => fetchCityData(city), 1800000);
-            });
-            initMarkers();
-        });
-
+    savedCities.forEach(c => fetchCityData(c, false));
 
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.map(t => new bootstrap.Tooltip(t));
@@ -100,10 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     document.getElementById('loading').style.display = 'none';
                     return;
                 }
-                if (!historyMap[city]) historyMap[city] = [];
-                historyMap[city].push(data);
                 renderCityCard(city, data, scroll);
-                drawHistory(city, historyMap[city]);
                 fetchCoords(city, data.aqi);
                 document.getElementById('loading').style.display = 'none';
             })
@@ -172,35 +154,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
-    function drawHistory(city, history) {
-        const cardCanvas = document.querySelector(`canvas[data-city="${city}"]`);
-        const labels = history.map(h => new Date(h.timestamp).toLocaleTimeString());
-        const data = history.map(h => h.aqi);
-
-        if (cardCanvas) {
-            const ctx = cardCanvas.getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: { labels: labels, datasets: [{ label: 'AQI', data: data, borderColor: 'rgba(75,192,192,1)', backgroundColor: 'rgba(75,192,192,0.2)', fill: true }] },
-                options: { responsive: true, scales: { y: { beginAtZero: true } }, animation: { duration: 1000, easing: 'easeOutQuart' }, interaction: { mode: 'index', intersect: false } }
-            });
-        }
-
-        const detailCanvas = document.getElementById('historyChart');
-        if (detailCanvas && currentCity === city) {
-            const ctx2 = detailCanvas.getContext('2d');
-            if (detailChart) detailChart.destroy();
-            detailChart = new Chart(ctx2, {
-                type: chartType,
-                data: { labels: labels, datasets: [{ label: 'AQI', data: data, borderColor: 'rgba(75,192,192,1)', backgroundColor: 'rgba(75,192,192,0.2)', fill: true }] },
-                options: { responsive: true, scales: { y: { beginAtZero: true } }, animation: { duration: 1000, easing: 'easeOutQuart' }, interaction: { mode: 'index', intersect: false } }
-            });
-        }
-
-        updatePieChart(city, history);
-        showPollutantBreakdown(city, history);
-    }
-
     function renderCityCard(city, data, scroll) {
         const slug = city.toLowerCase().replace(/\s+/g, '');
         let card = document.querySelector(`[data-card="${city}"]`);
@@ -253,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 card.classList.remove('neon-warning');
             }
         }
-        drawHistory(city, historyMap[city]);
+        fetchCityHistory(city, 48);
     }
 
     function highlightCard(element) {
@@ -398,7 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('bar-moderate').style.width = '0%';
         document.getElementById('bar-bad').style.width = '0%';
 
-        drawHistory(city, historyMap[city]);
+        fetchCityHistory(city, 168);
         detailDrawer.show();
     }
 
@@ -414,7 +367,6 @@ document.addEventListener('DOMContentLoaded', () => {
             searchInput.disabled = false;
         }, 12000);
         try {
-            await fetch(`/search?city=${encodeURIComponent(city)}`);
             await fetchCityData(city, true);
             addCityToList(city);
         } finally {
@@ -447,7 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleBtn.addEventListener('click', () => {
             chartType = chartType === 'line' ? 'bar' : 'line';
             if (currentCity) {
-                drawHistory(currentCity, historyMap[currentCity]);
+                fetchCityHistory(currentCity, 168);
             }
         });
     }
@@ -512,10 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     socket.on('update', data => {
-        if (!historyMap[data.city]) historyMap[data.city] = [];
-        historyMap[data.city].push(data);
         renderCityCard(data.city, data);
-        drawHistory(data.city, historyMap[data.city]);
         fetchCoords(data.city, data.aqi);
     });
 
@@ -548,5 +497,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
-    
+    initMarkers();
+    cities.forEach(city => {
+        fetchCoords(city, null);
+        fetchCityData(city, false);
+        setInterval(() => fetchCityData(city), 1800000);
+    });
 });

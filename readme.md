@@ -70,3 +70,39 @@ npm test --silent
 
 ## Continuous Integration and Delivery
 The `ci.yml` workflow runs unit and integration tests. The `cd.yml` workflow builds the image using `pollution_data_visualizer/Dockerfile` and pushes it to GitHub Container Registry when changes land on the `main` branch.
+
+## A-Level Requirements Checklist
+
+The project implements every item from the A-level specification. Each entry
+below links to the relevant lines in the repository so you can verify the code
+yourself.
+
+- **Web application with form and reporting** – the search form is defined in
+  `templates/index.html` lines 3‑18 and the Flask routes that serve pages and
+  reports live in `app.py` lines 68‑187【F:pollution_data_visualizer/templates/index.html†L1-L18】【F:pollution_data_visualizer/app.py†L68-L187】.
+- **Data collection** – `fetch_air_quality` and `collect_data` retrieve and
+  store measurements. See `data_collector.py` lines 7‑44【F:pollution_data_visualizer/data_collector.py†L7-L44】.
+- **Data analyzer** – helper functions to compute recent data and averages are
+  located in `data_analyzer.py` lines 4‑36【F:pollution_data_visualizer/data_analyzer.py†L4-L36】.
+- **Unit tests** – `tests/test_data_collector.py` lines 10‑29 mock the HTTP
+  call and verify parsing logic【F:pollution_data_visualizer/tests/test_data_collector.py†L10-L29】.
+- **Data persistence** – SQLAlchemy models store readings in a SQLite database;
+  these are in `models.py` lines 5‑40【F:pollution_data_visualizer/models.py†L5-L40】.
+- **REST collaboration** – JSON endpoints for history, averages and coordinates
+  are implemented in `app.py` lines 83‑187【F:pollution_data_visualizer/app.py†L83-L187】.
+- **Product environment** – the Docker image is built using
+  `pollution_data_visualizer/Dockerfile` lines 1‑11【F:pollution_data_visualizer/Dockerfile†L1-L11】.
+- **Integration tests** – the full application flow is checked in
+  `tests/test_integration.py` lines 19‑30【F:pollution_data_visualizer/tests/test_integration.py†L19-L30】.
+- **Mock objects or test doubles** – `tests/test_e2e.py` uses
+  `unittest.mock.patch` to replace functions as shown on lines 26‑35【F:pollution_data_visualizer/tests/test_e2e.py†L26-L35】.
+- **Continuous integration** – GitHub Actions configuration in
+  `.github/workflows/ci.yml` lines 1‑45 installs dependencies and runs the test
+  suites【F:.github/workflows/ci.yml†L1-L45】.
+- **Production monitoring** – Prometheus counters and gauges are updated in
+  `app.py` lines 22‑37 and exposed at `/metrics` in lines 187‑189【F:pollution_data_visualizer/app.py†L22-L37】【F:pollution_data_visualizer/app.py†L187-L189】.
+- **Event collaboration messaging** – events are queued in
+  `events.py` lines 11‑29 and triggered in `scheduled_collection` and `search`
+  (`app.py` lines 49‑52 and 132‑135)【F:pollution_data_visualizer/events.py†L11-L29】【F:pollution_data_visualizer/app.py†L49-L52】【F:pollution_data_visualizer/app.py†L132-L135】.
+- **Continuous delivery** – automated container builds and pushes are handled by
+  `.github/workflows/cd.yml` lines 1‑34【F:.github/workflows/cd.yml†L1-L34】.

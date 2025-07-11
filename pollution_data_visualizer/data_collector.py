@@ -2,7 +2,7 @@ import requests
 from config import Config
 from urllib.parse import quote
 from datetime import datetime, timedelta
-from models import db, PollutionRecord
+from models import db, AirQualityData
 
 def fetch_air_quality(city):
     url = Config.BASE_URL.format(quote(city))
@@ -21,21 +21,21 @@ def fetch_air_quality(city):
         raise Exception(f"Failed to fetch data for {city}. Error: {data.get('data', {}).get('error', 'Unknown error')}")
         
 def save_air_quality_data(city, aqi, pm25, co, no2, timestamp):
-    record = PollutionRecord(
+    air_quality_data = AirQualityData(
         city=city,
-        timestamp=timestamp,
         aqi=aqi,
         pm25=pm25,
         co=co,
         no2=no2,
+        timestamp=timestamp,
     )
-    db.session.add(record)
+    db.session.add(air_quality_data)
     db.session.commit()
 
 def collect_data(city, max_age_minutes=Config.FETCH_CACHE_MINUTES):
     latest = (
-        PollutionRecord.query.filter_by(city=city)
-        .order_by(PollutionRecord.timestamp.desc())
+        AirQualityData.query.filter_by(city=city)
+        .order_by(AirQualityData.timestamp.desc())
         .first()
     )
     if latest and datetime.now() - latest.timestamp < timedelta(minutes=max_age_minutes):
