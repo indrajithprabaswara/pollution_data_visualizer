@@ -22,20 +22,42 @@ document.addEventListener('DOMContentLoaded', () => {
         .then(r => r.json())
         .then(h => { allHistory = h; renderHistoryChart(h); });
 
+    const lineColors = ['red','blue','green','orange','purple','cyan'];
+    let chartDatasets = [];
+
+    function drawLine(city, history) {
+        chartDatasets.push({
+            label: city,
+            data: history.map(h => h.aqi),
+            borderColor: lineColors[chartDatasets.length % lineColors.length],
+            fill: false
+        });
+    }
+
     function renderHistoryChart(data) {
         const canvas = document.getElementById('compareChart');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         const labels = (data[DEFAULT_CITIES[0]] || []).map(h => new Date(h.timestamp).toLocaleTimeString());
-        const colors = ['red','blue','green','orange','purple','cyan'];
-        const datasets = Object.keys(data).map((city,i)=>({
-            label: city,
-            data: data[city].map(h=>h.aqi),
-            borderColor: colors[i%colors.length],
-            fill:false
-        }));
+        chartDatasets = [];
+        for (let city in data) {
+            drawLine(city, data[city]);
+        }
         if (window.initialChart) window.initialChart.destroy();
-        window.initialChart = new Chart(ctx,{type:'line',data:{labels,datasets},options:{responsive:true,interaction:{mode:'index',intersect:false}}});
+        window.initialChart = new Chart(ctx,{type:'line',data:{labels,datasets:chartDatasets},options:{responsive:true,interaction:{mode:'index',intersect:false}}});
+    }
+
+    function appendPoint(city, timestamp, aqi) {
+        if (!window.initialChart) return;
+        const label = new Date(timestamp).toLocaleTimeString();
+        window.initialChart.data.labels.push(label);
+        window.initialChart.data.datasets.forEach(ds => {
+            ds.data.push(ds.label === city ? aqi : null);
+        });
+    }
+
+    function updateChart() {
+        if (window.initialChart) window.initialChart.update();
     }
     const map = L.map('map').setView([20, 0], 2);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -510,6 +532,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
+    });
+
+    socket.on('new_record', data => {
+        appendPoint(data.city, data.timestamp, data.aqi);
+        updateChart();
     });
 
     function initMarkers() {
