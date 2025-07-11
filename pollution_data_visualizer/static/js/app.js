@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
                 const latest = history[history.length - 1] || {};
-                renderCityCard(city, latest, scroll); // updated to OpenAQ v3
+                renderCityCard(city, latest, scroll); // updated to match database schema
                 fetchCoords(city, latest.value);
                 document.getElementById('loading').style.display = 'none';
             })
@@ -99,12 +99,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function fetchCityHistory(city, hrs = 48) {
-        fetch(`/data/${encodeURIComponent(city)}`) // updated to OpenAQ v3
+        fetch(`/data/${encodeURIComponent(city)}`) // updated to match database schema
             .then(r => r.json())
             .then(history => {
                 const cardCanvas = document.querySelector(`canvas[data-city="${city}"]`);
-                const labels = history.map(h => new Date(h.utc_datetime).toLocaleTimeString()); // updated to OpenAQ v3
-                const data = history.map(h => h.value); // updated to OpenAQ v3
+                const labels = history.map(h => new Date(h.utc_datetime).toLocaleTimeString()); // updated to match database schema
+                const data = history.map(h => h.value); // updated to match database schema
 
                 if (cardCanvas) {
                     const ctx = cardCanvas.getContext('2d');
@@ -171,9 +171,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             <button class="btn btn-sm btn-outline-primary ms-2 save-btn" data-city="${city}">Save</button>
                           </div>
                         </div>
-                        <p class="card-text">Value: <span class="aqi">${data.value}</span> ${data.unit}</p> // updated to OpenAQ v3
-                        <p class="small">Location: <span class="location">${data.location}</span></p> // updated to OpenAQ v3
-                        <p class="small">Time: <span class="utc">${new Date(data.utc_datetime).toLocaleString()}</span></p> // updated to OpenAQ v3
+                        <p class="card-text">Value: <span class="aqi">${data.value}</span> ${data.unit}</p> // updated to match database schema
+                        <p class="small">Location: <span class="location">${data.location}</span></p> // updated to match database schema
+                        <p class="small">Time: <span class="utc">${new Date(data.utc_datetime).toLocaleString()}</span></p> // updated to match database schema
                         <canvas data-city="${city}"></canvas>
                     </div>
                 </div>`;
@@ -194,11 +194,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast(`Done! See the pollution levels for ${city}`, 'success', 4000);
             }
         } else {
-            card.querySelector('.aqi').textContent = data.value; // updated to OpenAQ v3
+            card.querySelector('.aqi').textContent = data.value; // updated to match database schema
             const locEl = card.querySelector('.location');
-            if (locEl) locEl.textContent = data.location; // updated to OpenAQ v3
+            if (locEl) locEl.textContent = data.location; // updated to match database schema
             const timeEl = card.querySelector('.utc');
-            if (timeEl) timeEl.textContent = new Date(data.utc_datetime).toLocaleString(); // updated to OpenAQ v3
+            if (timeEl) timeEl.textContent = new Date(data.utc_datetime).toLocaleString(); // updated to match database schema
             highlightCard(card.parentElement);
             if (alerts[city] && data.value >= alerts[city]) {
                 card.classList.add('neon-warning');
@@ -218,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updatePieChart(city, history) {
         const counts = { good: 0, moderate: 0, bad: 0 };
         history.forEach(h => {
-            if (h.value <= 50) counts.good++; else if (h.value <= 100) counts.moderate++; else counts.bad++; // updated to OpenAQ v3
+            if (h.value <= 50) counts.good++; else if (h.value <= 100) counts.moderate++; else counts.bad++; // updated to match database schema
         });
         const total = counts.good + counts.moderate + counts.bad;
         const ctx = document.getElementById('pieChart').getContext('2d');
@@ -240,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('bar-moderate').style.width = `${(counts.moderate/total)*100}%`;
         document.getElementById('bar-bad').style.width = `${(counts.bad/total)*100}%`;
         const advice = document.querySelector('#advice');
-        const latest = history[history.length - 1]?.value || 0; // updated to OpenAQ v3
+        const latest = history[history.length - 1]?.value || 0; // updated to match database schema
         let text = 'Nice! Your area is not polluted.';
         advice.classList.remove('neon-warning');
         if (latest > 100) {
@@ -255,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showPollutantBreakdown(city, history) {
         const counts = { good: 0, moderate: 0, bad: 0 };
         history.forEach(h => {
-            categorize(h.value, counts, 12, 35); // updated to OpenAQ v3
+            categorize(h.value, counts, 12, 35); // updated to match database schema
         });
         const ctx = document.getElementById('pollutantChart').getContext('2d');
         new Chart(ctx, {
@@ -334,7 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
         currentCity = city;
 
         const card = document.querySelector(`[data-card="${city}"]`);
-        animateValue('detail-aqi', parseFloat(card.querySelector('.aqi').textContent), 800); // updated to OpenAQ v3
+        animateValue('detail-aqi', parseFloat(card.querySelector('.aqi').textContent), 800); // updated to match database schema
 
         const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggerList.map(t => new bootstrap.Tooltip(t));
@@ -404,13 +404,13 @@ document.addEventListener('DOMContentLoaded', () => {
         compareBtn.addEventListener('click', () => {
             const selected = Array.from(document.querySelectorAll('.compare-check:checked')).map(c => c.dataset.city);
             if (selected.length < 2) { alert('Select at least two cities'); return; }
-            Promise.all(selected.map(c => fetch(`/data/${encodeURIComponent(c)}`))) // updated to OpenAQ v3
+            Promise.all(selected.map(c => fetch(`/data/${encodeURIComponent(c)}`))) // updated to match database schema
                 .then(responses => Promise.all(responses.map(r => r.json())))
                 .then(dataArr => {
-                    const labels = dataArr[0].map(h => new Date(h.utc_datetime).toLocaleTimeString()); // updated to OpenAQ v3
+                    const labels = dataArr[0].map(h => new Date(h.utc_datetime).toLocaleTimeString()); // updated to match database schema
                     const datasets = selected.map((city,i) => ({
                         label: city,
-                        data: dataArr[i].map(h => h.value), // updated to OpenAQ v3
+                        data: dataArr[i].map(h => h.value), // updated to match database schema
                         borderColor: ['red','blue','green','orange','purple'][i%5],
                         fill:false
                     }));
@@ -431,7 +431,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const avg = dataArr[i].reduce((s,h)=>s+(h.value||0),0)/dataArr[i].length;
                         return {
                             label: city,
-                            data: [avg, avg, avg], // updated to OpenAQ v3
+                            data: [avg, avg, avg], // updated to match database schema
                             backgroundColor: ['rgba(75,192,192,0.5)','rgba(255,99,132,0.5)','rgba(255,206,86,0.5)'][i%3]
                         };
                     });
@@ -453,7 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     socket.on('update', data => {
-        renderCityCard(data.city, data); // updated to OpenAQ v3
+        renderCityCard(data.city, data); // updated to match database schema
         fetchCoords(data.city, data.value);
     });
 
