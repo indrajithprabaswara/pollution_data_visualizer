@@ -1,7 +1,8 @@
 import os
 
 class Config:
-    API_KEY = 'da422a944c1edaa853351550b87c87b02b7563ab'
+    SECRET_KEY = 'change-me'
+    API_KEY = 'c08edb637332856d22941f390ab5dcf64062499a'
     BASE_URL = 'https://api.waqi.info/feed/{}/?token=' + API_KEY
 
     FETCH_CACHE_MINUTES = 30

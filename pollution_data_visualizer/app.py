@@ -3,7 +3,7 @@ from flask_socketio import SocketIO
 from prometheus_client import Counter, Gauge, generate_latest
 from events import publish_event, start_consumer
 from config import Config
-from models import db, AirQualityData
+from models import db, PollutionRecord
 from data_collector import collect_data, collect_data_for_multiple_cities
 from data_analyzer import get_average_aqi, get_recent_aqi, get_aqi_history
 from models import User, FavoriteCity
@@ -30,17 +30,19 @@ start_consumer(_log_event)
 @app.before_request
 def before_request_func():
     REQUEST_COUNT.labels(request.method, request.path).inc()
+    if 'tracked_cities' not in session:
+        session['tracked_cities'] = []
 
 @app.after_request
 def after_request_func(response):
-    AQI_GAUGE.set(AirQualityData.query.count())
+    AQI_GAUGE.set(PollutionRecord.query.count())
     return response
 
 scheduler = BackgroundScheduler()
 
 def scheduled_collection(force=False):
     with app.app_context():
-        for city in monitored_cities:
+        for city in list(monitored_cities):
             try:
                 if force:
                     collect_data(city, max_age_minutes=0)
@@ -101,6 +103,31 @@ def get_city_history(city):
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+@app.route('/data/history')
+def get_all_history():
+    try:
+        cities = list(dict.fromkeys(monitored_cities + session.get('tracked_cities', [])))
+        result = {}
+        for city in cities:
+            records = (
+                PollutionRecord.query.filter_by(city=city)
+                .order_by(PollutionRecord.timestamp.asc())
+                .all()
+            )
+            result[city] = [
+                {
+                    'timestamp': r.timestamp.isoformat(),
+                    'aqi': r.aqi,
+                    'pm25': r.pm25,
+                    'co': r.co,
+                    'no2': r.no2,
+                }
+                for r in records
+            ]
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
 @app.route('/data/history_multi')
 def get_history_multi():
     try:
@@ -126,9 +153,11 @@ def get_average(city):
 def search():
     city = request.args.get('city')
     if city:
-        collect_data(city) 
+        collect_data(city, max_age_minutes=0)
         if city not in monitored_cities:
             monitored_cities.append(city)
+        if city not in session['tracked_cities']:
+            session['tracked_cities'].append(city)
         history = get_aqi_history(city, hours=1)
         if history:
             socketio.emit('update', {'city': city, **history[-1]})

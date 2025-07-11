@@ -5,8 +5,8 @@ from unittest.mock import patch
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app import app, db
-from models import AirQualityData
+from app import app, db, monitored_cities
+from models import PollutionRecord
 
 class TestIntegration(unittest.TestCase):
     def setUp(self):
@@ -20,14 +20,23 @@ class TestIntegration(unittest.TestCase):
     def test_full_flow(self, mock_fetch):
         from datetime import datetime
         mock_fetch.return_value = (50, 12, 0.4, 14, datetime.now())
-        resp = self.client.get('/data/Testville')
+        resp = self.client.get('/search?city=Testville')
         self.assertEqual(resp.status_code, 200)
-        data = resp.get_json()
+        data = self.client.get('/data/Testville').get_json()
         self.assertEqual(data['aqi'], 50)
         hist_resp = self.client.get('/data/history/Testville?hours=1')
         history = hist_resp.get_json()
         self.assertEqual(len(history), 1)
         self.assertEqual(history[0]['aqi'], 50)
+        all_hist = self.client.get('/data/history').get_json()
+        self.assertIn('Testville', all_hist)
+
+    @patch('data_collector.fetch_air_quality')
+    def test_add_city_updates_schedule(self, mock_fetch):
+        from datetime import datetime
+        mock_fetch.return_value = (40, 10, 0.3, 12, datetime.now())
+        self.client.get('/search?city=SchedCity')
+        self.assertIn('SchedCity', monitored_cities)
 
 if __name__ == '__main__':
     unittest.main()
