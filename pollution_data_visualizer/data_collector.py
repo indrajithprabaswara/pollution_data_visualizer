@@ -108,18 +108,20 @@ def save_air_quality_data(city, aqi, pm25, co, no2, timestamp):
     db.session.add(air_quality_data)
     db.session.commit()
     COLLECTION_SUCCESS.inc()
-    try:
-        from app import socketio
-        socketio.emit('new_record', {
-            'city': city,
-            'timestamp': timestamp.isoformat(),
-            'aqi': aqi,
-            'pm25': pm25,
-            'co': co,
-            'no2': no2,
-        }, namespace='/')
-    except Exception:
-        pass
+    from app import socketio
+    r = air_quality_data
+    socketio.emit(
+        'new_record',
+        {
+            'city': r.city,
+            'timestamp': r.timestamp.isoformat(),
+            'aqi': r.aqi,
+            'pm25': r.pm25,
+            'co': r.co,
+            'no2': r.no2,
+        },
+        namespace='/'
+    )
     publish_event('aqi_collected', {'city': city, 'aqi': aqi})
 
 def collect_data(city, max_age_minutes=Config.FETCH_CACHE_MINUTES):
