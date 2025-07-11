@@ -28,7 +28,23 @@ jobs:
       - name: Build and push image
         uses: docker/build-push-action@v5
         with:
-          context: pollution_data_visualizer
-          file: pollution_data_visualizer/Dockerfile
+          context: .
+          file: Dockerfile
           push: true
           tags: ghcr.io/${{ github.repository }}:latest
+
+      - uses: google-github-actions/setup-gcloud@v1
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT }}
+          export_default_credentials: true
+
+      - name: Deploy to staging
+        run: |
+          gcloud run deploy ${{ secrets.GCP_RUN_SERVICE_STAGING }} --image ghcr.io/${{ github.repository }}:latest --region ${{ secrets.GCP_REGION }} --platform managed --quiet
+          curl -f https://${{ secrets.GCP_RUN_STAGING_URL }}/data/history
+          curl -f "https://${{ secrets.GCP_RUN_STAGING_URL }}/data/current?city=Beijing"
+
+      - name: Promote to production
+        run: |
+          gcloud run deploy ${{ secrets.GCP_RUN_SERVICE }} --image ghcr.io/${{ github.repository }}:latest --region ${{ secrets.GCP_REGION }} --platform managed --quiet

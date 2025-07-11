@@ -7,8 +7,9 @@ Simple script to verify your WAQI token and endpoint are returning sane JSON.
 
 import requests
 import sys
+import os
 
-API_TOKEN = "19ae9358e032b2a613a6e20605b39b95b106a9a6"
+API_TOKEN = os.environ.get("WAQI_TOKEN", "")
 BASE_URL = "https://api.waqi.info/feed/{city}/"
 
 def check_city(city: str):

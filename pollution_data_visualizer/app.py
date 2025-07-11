@@ -3,24 +3,26 @@ from flask_socketio import SocketIO
 from prometheus_client import Counter, Gauge, generate_latest
 from events import publish_event, start_consumer
 from config import Config
-from models import db, AirQualityData
+from models import db, PollutionRecord
 from data_collector import collect_data, collect_data_for_multiple_cities
 from data_analyzer import get_average_aqi, get_recent_aqi, get_aqi_history
 from models import User, FavoriteCity
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
-from apscheduler.schedulers.background import BackgroundScheduler
 import os
+from google.cloud import pubsub_v1
 
-monitored_cities = ['New York', 'Los Angeles', 'San Francisco', 'Paris', 'Delhi', 'Perth']
+monitored_cities = set(Config.DEFAULT_CITIES)
 
 app = Flask(__name__)
 app.config.from_object(Config)
+app.secret_key = app.config['SECRET_KEY']
 db.init_app(app)
 socketio = SocketIO(app, async_mode='threading')
 
 REQUEST_COUNT = Counter('request_count', 'Total HTTP requests', ['method', 'endpoint'])
 AQI_GAUGE = Gauge('stored_aqi_records', 'Number of AQI records in the database')
+SCHEDULER_LAST_RUN = Gauge('aqi_job_last_run_seconds', 'Time of last collection run')
 
 def _log_event(event):
     app.logger.info('event: %s', event)
@@ -30,29 +32,33 @@ start_consumer(_log_event)
 @app.before_request
 def before_request_func():
     REQUEST_COUNT.labels(request.method, request.path).inc()
+    session.setdefault('tracked_cities', [])
 
 @app.after_request
 def after_request_func(response):
-    AQI_GAUGE.set(AirQualityData.query.count())
+    AQI_GAUGE.set(PollutionRecord.query.count())
     return response
 
-scheduler = BackgroundScheduler()
+def collect_all_data(force=False):
+    for city in monitored_cities:
+        try:
+            if force:
+                collect_data(city, max_age_minutes=0)
+            else:
+                collect_data(city)
+        except Exception as e:
+            app.logger.warning("Failed to collect data for %s: %s", city, e)
+    SCHEDULER_LAST_RUN.set_to_current_time()
 
-def scheduled_collection(force=False):
-    with app.app_context():
-        for city in monitored_cities:
-            try:
-                if force:
-                    collect_data(city, max_age_minutes=0)
-                else:
-                    collect_data(city)
-                history = get_aqi_history(city, hours=1)
-                if history:
-                    socketio.emit('update', {'city': city, **history[-1]})
-                    publish_event('aqi_collected', {'city': city, 'aqi': history[-1]['aqi']})
-            except Exception as e:
-                app.logger.warning("Failed to collect data for %s: %s", city, e)
-
+def start_pubsub_listener():
+    sub = os.environ.get('PUBSUB_SUBSCRIPTION')
+    if not sub:
+        return
+    subscriber = pubsub_v1.SubscriberClient()
+    def callback(msg):
+        collect_all_data(force=True)
+        msg.ack()
+    subscriber.subscribe(sub, callback=callback)
 
 @app.before_first_request
 def setup_database():
@@ -62,9 +68,13 @@ def setup_database():
         user = User(username='demo', password=generate_password_hash('demo'))
         db.session.add(user)
         db.session.commit()
-    scheduler.add_job(scheduled_collection, 'interval', minutes=30, id='aqi_job')
-    scheduler.start()
-    scheduled_collection(force=True)
+    if os.environ.get('USE_LOCAL_SCHEDULER') == '1':
+        from apscheduler.schedulers.background import BackgroundScheduler
+        scheduler = BackgroundScheduler()
+        scheduler.add_job(lambda: collect_all_data(False), 'interval', minutes=30)
+        scheduler.start()
+    start_pubsub_listener()
+    collect_all_data(force=True)
 
 @app.route('/')
 def index():
@@ -92,6 +102,27 @@ def get_city_data(city):
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+@app.route('/data/current')
+def get_current():
+    city = request.args.get('city')
+    if not city:
+        return jsonify({'error': 'city required'}), 400
+    try:
+        collect_data(city, max_age_minutes=0)
+        latest = PollutionRecord.query.filter_by(city=city).order_by(PollutionRecord.timestamp.desc()).first()
+        if not latest:
+            return jsonify({'error': 'no data'}), 404
+        return jsonify({
+            'city': city,
+            'timestamp': latest.timestamp.isoformat(),
+            'aqi': latest.aqi,
+            'pm25': latest.pm25,
+            'co': latest.co,
+            'no2': latest.no2,
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/data/history/<city>')
 def get_city_history(city):
     try:
@@ -100,6 +131,14 @@ def get_city_history(city):
         return jsonify(history)
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+@app.route('/data/history')
+def history_all():
+    hours = int(request.args.get('hours', 8760))
+    cities = set(Config.DEFAULT_CITIES)
+    cities.update(session.get('tracked_cities', []))
+    result = {c: get_aqi_history(c, hours=hours) for c in cities}
+    return jsonify(result)
 
 @app.route('/data/history_multi')
 def get_history_multi():
@@ -126,9 +165,11 @@ def get_average(city):
 def search():
     city = request.args.get('city')
     if city:
-        collect_data(city) 
+        collect_data(city, max_age_minutes=0)
+        if city not in session['tracked_cities']:
+            session['tracked_cities'].append(city)
         if city not in monitored_cities:
-            monitored_cities.append(city)
+            monitored_cities.add(city)
         history = get_aqi_history(city, hours=1)
         if history:
             socketio.emit('update', {'city': city, **history[-1]})
@@ -184,17 +225,15 @@ def api_all_coords():
         coords = json.load(f)
     return jsonify(coords)
 
+@app.route('/tasks/collect', methods=['POST'])
+def trigger_collect():
+    collect_all_data(force=True)
+    return '', 204
+
 @app.route('/metrics')
 def metrics():
     return generate_latest(), 200, {'Content-Type': 'text/plain'}
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
-    socketio.run(
-        app,
-        debug=False,
-        use_reloader=False,
-        host="0.0.0.0",
-        port=port,
-        allow_unsafe_werkzeug=True
-    )
+    socketio.run(app, host="0.0.0.0", port=port)

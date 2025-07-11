@@ -12,6 +12,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let detailChart = null;
     let currentCity = '';
     const socket = io();
+    let allHistory = {};
+    fetch('/data/history')
+        .then(r => r.json())
+        .then(h => allHistory = h);
     const map = L.map('map').setView([20, 0], 2);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19
@@ -98,60 +102,67 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function fetchCityHistory(city, hrs = 48) {
+        const local = allHistory[city];
+        if (local) { drawHistory(city, local); return; }
         fetch(`/data/history/${encodeURIComponent(city)}?hours=${hrs}`)
             .then(r => r.json())
             .then(history => {
-                const cardCanvas = document.querySelector(`canvas[data-city="${city}"]`);
-                const labels = history.map(h => new Date(h.timestamp).toLocaleTimeString());
-                const data = history.map(h => h.aqi);
-
-                if (cardCanvas) {
-                    const ctx = cardCanvas.getContext('2d');
-                    new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: 'AQI',
-                                data: data,
-                                borderColor: 'rgba(75,192,192,1)',
-                                backgroundColor: 'rgba(75,192,192,0.2)',
-                                fill: true
-                            }]
-                        },
-                        options: { responsive: true,
-                                   scales: { y: { beginAtZero: true } },
-                                   animation: { duration: 1000, easing: 'easeOutQuart' },
-                                   interaction: { mode: 'index', intersect: false } }
-                    });
-                }
-
-                const detailCanvas = document.getElementById('historyChart');
-                if (detailCanvas) {
-                    const ctx2 = detailCanvas.getContext('2d');
-                    if (detailChart) detailChart.destroy();
-                    detailChart = new Chart(ctx2, {
-                        type: chartType,
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: 'AQI',
-                                data: data,
-                                borderColor: 'rgba(75,192,192,1)',
-                                backgroundColor: 'rgba(75,192,192,0.2)',
-                                fill: true
-                            }]
-                        },
-                        options: { responsive: true,
-                                   scales: { y: { beginAtZero: true } },
-                                   animation: { duration: 1000, easing: 'easeOutQuart' },
-                                   interaction: { mode: 'index', intersect: false } }
-                    });
-                }
-
-                updatePieChart(city, history);
-                showPollutantBreakdown(city, history);
+                allHistory[city] = history;
+                drawHistory(city, history);
             });
+    }
+
+    function drawHistory(city, history) {
+        const cardCanvas = document.querySelector(`canvas[data-city="${city}"]`);
+        const labels = history.map(h => new Date(h.timestamp).toLocaleTimeString());
+        const data = history.map(h => h.aqi);
+
+        if (cardCanvas) {
+            const ctx = cardCanvas.getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'AQI',
+                        data: data,
+                        borderColor: 'rgba(75,192,192,1)',
+                        backgroundColor: 'rgba(75,192,192,0.2)',
+                        fill: true
+                    }]
+                },
+                options: { responsive: true,
+                           scales: { y: { beginAtZero: true } },
+                           animation: { duration: 1000, easing: 'easeOutQuart' },
+                           interaction: { mode: 'index', intersect: false } }
+            });
+        }
+
+        const detailCanvas = document.getElementById('historyChart');
+        if (detailCanvas) {
+            const ctx2 = detailCanvas.getContext('2d');
+            if (detailChart) detailChart.destroy();
+            detailChart = new Chart(ctx2, {
+                type: chartType,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'AQI',
+                        data: data,
+                        borderColor: 'rgba(75,192,192,1)',
+                        backgroundColor: 'rgba(75,192,192,0.2)',
+                        fill: true
+                    }]
+                },
+                options: { responsive: true,
+                           scales: { y: { beginAtZero: true } },
+                           animation: { duration: 1000, easing: 'easeOutQuart' },
+                           interaction: { mode: 'index', intersect: false } }
+            });
+        }
+
+        updatePieChart(city, history);
+        showPollutantBreakdown(city, history);
     }
 
     function renderCityCard(city, data, scroll) {
@@ -466,6 +477,10 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.on('update', data => {
         renderCityCard(data.city, data);
         fetchCoords(data.city, data.aqi);
+        if (allHistory[data.city]) {
+            allHistory[data.city].push({timestamp:data.timestamp, aqi:data.aqi, pm25:data.pm25, co:data.co, no2:data.no2});
+            drawHistory(data.city, allHistory[data.city]);
+        }
     });
 
     function initMarkers() {
