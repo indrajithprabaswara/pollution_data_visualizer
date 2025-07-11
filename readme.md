@@ -74,13 +74,10 @@ npm test --silent
 The `ci.yml` workflow runs unit and integration tests. The `cd.yml` workflow builds the image using the root `Dockerfile` and pushes it to GitHub Container Registry when changes land on the `main` branch.
 
 ## Policy & Attribution
-- All APIs are provided for free and are subject to quota (default 1,000 requests per second).
-- A valid API key must be used.
-- Data cannot be sold, used in paid services or redistributed as cached or archived data.
-- Attribution to the World Air Quality Index Project and the originating EPA is mandatory.
-- Public usage by for-profit corporations requires explicit agreement with the WAQI team.
-- Public usage by non-profit organizations requires prior email notification.
-For for-profit or non-profit usage questions email `team@waqi.info`. Data sourced from World Air Quality Index Project and EPA.
+- Usage limited to 1,000 requests per minute with bursts up to 60.
+- No paid redistribution or resale of the data.
+- Attribution to the World Air Quality Index Project and EPA is mandatory.
+- For questions email `team@waqi.info`.
 
 ## A-Level Requirements Checklist
 
