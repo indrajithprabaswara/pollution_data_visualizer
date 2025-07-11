@@ -12,4 +12,4 @@ RUN apt-get update && apt-get install -y curl ca-certificates nodejs npm \
 COPY . .
 EXPOSE 8080
 ENV PORT=8080
-CMD ["gunicorn", "-w", "4", "-k", "eventlet", "-b", "0.0.0.0:$PORT", "pollution_data_visualizer.wsgi:app"]
+CMD ["gunicorn","-w","4","-k","eventlet","-b","0.0.0.0:$PORT","pollution_data_visualizer.wsgi:app"]

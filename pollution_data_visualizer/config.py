@@ -1,9 +1,9 @@
 import os
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY', '')
-    WAQI_TOKEN = os.environ.get('WAQI_TOKEN', '')
-    BASE_URL = 'https://api.waqi.info/feed/{}/?token=' + WAQI_TOKEN
+    SECRET_KEY = os.environ['SECRET_KEY']
+    WAQI_TOKEN = os.environ['WAQI_TOKEN']
+    BASE_URL = f'https://api.waqi.info/feed/{{}}/?token={WAQI_TOKEN}'
 
     DEFAULT_CITIES = ['New York', 'Los Angeles', 'San Francisco']
 
