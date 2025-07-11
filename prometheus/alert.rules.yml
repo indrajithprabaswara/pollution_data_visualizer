@@ -1,0 +1,17 @@
+ groups:
+ - name: aqi-alerts
+   rules:
+   - alert: HighErrorRate
+     expr: rate(request_count{status="500"}[5m]) > 0.1
+     for: 10m
+     labels:
+       severity: high
+     annotations:
+       description: High error rate detected
+   - alert: SchedulerMiss
+     expr: time() - aqi_job_last_run_seconds > 1800
+     for: 30m
+     labels:
+       severity: medium
+     annotations:
+       description: Scheduler has not run in 30m

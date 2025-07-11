@@ -33,8 +33,10 @@ The interface uses Bootstrap together with Tailwind CSS for a modern look. Globa
    ```bash
    pip install -r pollution_data_visualizer/requirements.txt
    ```
-2. Run the application:
+2. Set environment variables and run:
    ```bash
+   export WAQI_TOKEN=<your_token>
+   export SECRET_KEY=<secret>
    python pollution_data_visualizer/app.py
    ```
 The application will be available at `http://localhost:5000`.
@@ -106,3 +108,4 @@ yourself.
   (`app.py` lines 49‑52 and 132‑135)【F:pollution_data_visualizer/events.py†L11-L29】【F:pollution_data_visualizer/app.py†L49-L52】【F:pollution_data_visualizer/app.py†L132-L135】.
 - **Continuous delivery** – automated container builds and pushes are handled by
   `.github/workflows/cd.yml` lines 1‑34【F:.github/workflows/cd.yml†L1-L34】.
+\nData courtesy of World Air Quality Index Project and EPA.

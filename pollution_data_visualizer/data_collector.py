@@ -1,13 +1,59 @@
 import requests
+import time
+import threading
 from config import Config
 from urllib.parse import quote
 from datetime import datetime, timedelta
-from models import db, AirQualityData
+from models import db, PollutionRecord
+from events import publish_event
+
+class TokenBucket:
+    def __init__(self, rate, capacity):
+        self.rate = rate
+        self.capacity = capacity
+        self.tokens = capacity
+        self.timestamp = time.monotonic()
+        self.lock = threading.Lock()
+
+    def consume(self, tokens=1):
+        with self.lock:
+            now = time.monotonic()
+            self.tokens = min(self.capacity, self.tokens + (now - self.timestamp) * self.rate)
+            self.timestamp = now
+            if self.tokens >= tokens:
+                self.tokens -= tokens
+                return True
+        return False
+
+    def wait(self, tokens=1):
+        while not self.consume(tokens):
+            time.sleep(max(0, 1 / self.rate))
+
+
+bucket = TokenBucket(16, 60)
+_cache = {}
+CACHE_TTL = 300
 
 def fetch_air_quality(city):
+    cached = _cache.get(city)
+    if cached and time.time() - cached['time'] < CACHE_TTL:
+        return cached['data']
+
     url = Config.BASE_URL.format(quote(city))
-    response = requests.get(url)
-    data = response.json()
+    tries = 0
+    while tries < 3:
+        bucket.wait()
+        resp = requests.get(url, allow_redirects=True, timeout=10)
+        if resp.status_code in (429,) or 300 <= resp.status_code < 400:
+            time.sleep(2 ** tries)
+            tries += 1
+            continue
+        data = resp.json()
+        if data.get("status") == "ok":
+            break
+        raise Exception(f"Failed to fetch data for {city}. Error: {data.get('data', {}).get('error', 'Unknown error')}")
+    else:
+        raise Exception(f"Failed to fetch data for {city}")
 
     if data.get("status") == "ok":
         aqi = data["data"].get("aqi")
@@ -16,12 +62,14 @@ def fetch_air_quality(city):
         co = iaqi.get("co", {}).get("v")
         no2 = iaqi.get("no2", {}).get("v")
         timestamp = datetime.now()
-        return aqi, pm25, co, no2, timestamp
+        result = (aqi, pm25, co, no2, timestamp)
+        _cache[city] = {'time': time.time(), 'data': result}
+        return result
     else:
         raise Exception(f"Failed to fetch data for {city}. Error: {data.get('data', {}).get('error', 'Unknown error')}")
         
 def save_air_quality_data(city, aqi, pm25, co, no2, timestamp):
-    air_quality_data = AirQualityData(
+    air_quality_data = PollutionRecord(
         city=city,
         aqi=aqi,
         pm25=pm25,
@@ -31,11 +79,24 @@ def save_air_quality_data(city, aqi, pm25, co, no2, timestamp):
     )
     db.session.add(air_quality_data)
     db.session.commit()
+    try:
+        from app import socketio
+        socketio.emit('update', {
+            'city': city,
+            'timestamp': timestamp.isoformat(),
+            'aqi': aqi,
+            'pm25': pm25,
+            'co': co,
+            'no2': no2,
+        })
+    except Exception:
+        pass
+    publish_event('aqi_collected', {'city': city, 'aqi': aqi})
 
 def collect_data(city, max_age_minutes=Config.FETCH_CACHE_MINUTES):
     latest = (
-        AirQualityData.query.filter_by(city=city)
-        .order_by(AirQualityData.timestamp.desc())
+        PollutionRecord.query.filter_by(city=city)
+        .order_by(PollutionRecord.timestamp.desc())
         .first()
     )
     if latest and datetime.now() - latest.timestamp < timedelta(minutes=max_age_minutes):
