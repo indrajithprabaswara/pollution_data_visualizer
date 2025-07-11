@@ -13,14 +13,6 @@ class TestE2E(unittest.TestCase):
     def setUp(self):
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
         app.config['TESTING'] = True
-        app.config['SECRET_KEY'] = 'test'
-        try:
-            app_module.scheduler.shutdown(wait=False)
-        except Exception:
-            pass
-        app_module.scheduler.add_job = lambda *a, **k: None
-        app_module.scheduler.start = lambda *a, **k: None
-        app_module.monitored_cities = []
         with app.app_context():
             db.create_all()
         self.client = app.test_client()

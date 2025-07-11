@@ -23,9 +23,5 @@ class TestApp(unittest.TestCase):
         response = self.app.get('/api/summary?city=TestCity')
         self.assertIn(response.status_code, [200, 400])
 
-    def test_history_endpoint(self):
-        resp = self.app.get('/data/history')
-        self.assertIn(resp.status_code, [200, 400])
-
 if __name__ == '__main__':
     unittest.main()
