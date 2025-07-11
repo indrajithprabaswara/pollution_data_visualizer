@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const DEFAULT_CITIES = ['New York', 'Los Angeles', 'San Francisco'];
+    const DEFAULT_CITIES = ['New York', 'Los Angeles', 'San Francisco', 'Perth', 'Paris', 'Delhi'];
     let cities = [...DEFAULT_CITIES];
     const container = document.getElementById('cities');
     const searchForm = document.getElementById('search-form');
