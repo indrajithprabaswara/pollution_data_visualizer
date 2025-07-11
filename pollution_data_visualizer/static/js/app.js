@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const cities = ['New York', 'Los Angeles', 'San Francisco', 'Paris', 'Delhi', 'Perth'];
+    const DEFAULT_CITIES = ['New York', 'Los Angeles', 'San Francisco'];
+    let cities = [...DEFAULT_CITIES];
     const container = document.getElementById('cities');
     const searchForm = document.getElementById('search-form');
     const searchInput = document.getElementById('search-input');
@@ -13,9 +14,29 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentCity = '';
     const socket = io();
     let allHistory = {};
-    fetch('/data/history')
+    fetch('/data/history', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({cities: DEFAULT_CITIES})
+    })
         .then(r => r.json())
-        .then(h => allHistory = h);
+        .then(h => { allHistory = h; renderHistoryChart(h); });
+
+    function renderHistoryChart(data) {
+        const canvas = document.getElementById('compareChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const labels = (data[DEFAULT_CITIES[0]] || []).map(h => new Date(h.timestamp).toLocaleTimeString());
+        const colors = ['red','blue','green','orange','purple','cyan'];
+        const datasets = Object.keys(data).map((city,i)=>({
+            label: city,
+            data: data[city].map(h=>h.aqi),
+            borderColor: colors[i%colors.length],
+            fill:false
+        }));
+        if (window.initialChart) window.initialChart.destroy();
+        window.initialChart = new Chart(ctx,{type:'line',data:{labels,datasets},options:{responsive:true,interaction:{mode:'index',intersect:false}}});
+    }
     const map = L.map('map').setView([20, 0], 2);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19
@@ -474,12 +495,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    socket.on('update', data => {
+    socket.on('new_record', data => {
         renderCityCard(data.city, data);
         fetchCoords(data.city, data.aqi);
         if (allHistory[data.city]) {
             allHistory[data.city].push({timestamp:data.timestamp, aqi:data.aqi, pm25:data.pm25, co:data.co, no2:data.no2});
             drawHistory(data.city, allHistory[data.city]);
+            if (window.initialChart) {
+                const ds = window.initialChart.data.datasets.find(d=>d.label===data.city);
+                if (ds) {
+                    window.initialChart.data.labels.push(new Date(data.timestamp).toLocaleTimeString());
+                    ds.data.push(data.aqi);
+                    window.initialChart.update();
+                }
+            }
         }
     });
 

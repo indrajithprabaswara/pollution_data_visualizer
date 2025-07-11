@@ -1,17 +1,17 @@
- groups:
- - name: aqi-alerts
-   rules:
-   - alert: HighErrorRate
-     expr: rate(request_count{status="500"}[5m]) > 0.1
-     for: 10m
-     labels:
-       severity: high
-     annotations:
-       description: High error rate detected
-   - alert: SchedulerMiss
-     expr: time() - aqi_job_last_run_seconds > 1800
-     for: 30m
-     labels:
-       severity: medium
-     annotations:
-       description: Scheduler has not run in 30m
+groups:
+- name: aqi-alerts
+  rules:
+  - alert: HighHttpErrorRate
+    expr: sum(rate(http_errors_total[5m])) / sum(rate(request_count[5m])) > 0.05
+    for: 5m
+    labels:
+      severity: high
+    annotations:
+      description: HTTP error rate greater than 5% over 5m
+  - alert: SchedulerMissedRuns
+    expr: time() - aqi_job_last_run_seconds > 3600
+    for: 60m
+    labels:
+      severity: critical
+    annotations:
+      description: Scheduler has not run in an hour

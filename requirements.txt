@@ -6,6 +6,7 @@ psycopg2-binary==2.9.3
 SQLAlchemy<2.0
 APScheduler==3.9.1
 flask_socketio==5.3.6
+eventlet==0.35.1
 
 prometheus-client==0.17.1
 google-cloud-pubsub==2.21.0
