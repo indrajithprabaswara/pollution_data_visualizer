@@ -4,16 +4,23 @@ from datetime import datetime, timedelta
 from models import db, AirQualityData, Measurement
 
 def fetch_air_quality(city):
-    page = 1
+    url = Config.BASE_URL.format(city=city)
+    resp = requests.get(url, params={'token': Config.API_KEY})
+    data = resp.json()
     results = []
-    while True:
-        response = requests.get(Config.BASE_URL, params={'city': city, 'limit': 100, 'page': page})  # updated to OpenAQ v3
-        data = response.json()
+    if 'results' in data:
         results.extend(data.get('results', []))
-        if page >= data.get('meta', {}).get('pages', 1):
-            break
-        page += 1
-    return results  # updated to OpenAQ v3
+    elif data.get('status') == 'ok':
+        d = data.get('data', {})
+        pm25 = d.get('iaqi', {}).get('pm25', {}).get('v')
+        val = pm25 if pm25 is not None else d.get('aqi')
+        results.append({
+            'location': d.get('city', {}).get('name'),
+            'value': val,
+            'unit': 'AQI',
+            'date': {'utc': d.get('time', {}).get('iso')}
+        })
+    return results
         
 def save_air_quality_data(city, results):
     if not results:
