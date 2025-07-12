@@ -1,5 +1,17 @@
 from models import AirQualityData
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
+import json
+import os
+
+def _tz_for(city):
+    path = os.path.join(os.path.dirname(__file__), 'city_coords.json')
+    with open(path) as f:
+        coords = json.load(f)
+    data = coords.get(city)
+    if isinstance(data, dict):
+        return data.get('tz')
+    return None
 
 def get_average_aqi(city, start_date, end_date):
     data = AirQualityData.query.filter(AirQualityData.city == city,
@@ -24,9 +36,11 @@ def get_aqi_history(city, hours=24):
         .order_by(AirQualityData.timestamp.asc())
         .all()
     )
+    tz = _tz_for(city)
     return [
         {
             "timestamp": record.timestamp.isoformat() + "Z",
+            "local_timestamp": record.timestamp.replace(tzinfo=timezone.utc).astimezone(ZoneInfo(tz)).isoformat() if tz else None,
             "aqi": record.aqi,
             "pm25": record.pm25,
             "co": record.co,

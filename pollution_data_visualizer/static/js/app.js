@@ -104,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(r => r.json())
             .then(history => {
                 const cardCanvas = document.querySelector(`canvas[data-city="${city}"]`);
-                const labels = history.map(h => new Date(h.utc_datetime).toLocaleTimeString('en-US', { timeZone: cityTimezones[city] || 'UTC' }));
+                const labels = history.map(h => new Date(h.local_timestamp || h.utc_datetime).toLocaleTimeString('en-US', { timeZone: cityTimezones[city] || 'UTC' }));
                 const data = history.map(h => h.value); // updated to match database schema
 
                 if (cardCanvas) {
@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const value = hasData ? data.value.toFixed(2) : 'N/A';
         const unit = hasData ? data.unit : '';
         const location = hasData ? data.location : 'N/A';
-        const time = hasData ? new Date(data.utc_datetime).toLocaleString('en-US', { timeZone: cityTimezones[city] || 'UTC' }) : 'No recent data';
+        const time = hasData ? new Date(data.local_datetime || data.utc_datetime).toLocaleString('en-US', { timeZone: cityTimezones[city] || 'UTC' }) : 'No recent data';
 
         if (!card) {
             const col = document.createElement('div');
@@ -415,7 +415,7 @@ document.addEventListener('DOMContentLoaded', () => {
             Promise.all(selected.map(c => fetch(`/data/${encodeURIComponent(c)}`))) // updated to match database schema
                 .then(responses => Promise.all(responses.map(r => r.json())))
                 .then(dataArr => {
-                    const labels = dataArr[0].map(h => new Date(h.utc_datetime).toLocaleTimeString('en-US', { timeZone: cityTimezones[selected[0]] || 'UTC' }));
+                    const labels = dataArr[0].map(h => new Date(h.local_timestamp || h.utc_datetime).toLocaleTimeString('en-US', { timeZone: cityTimezones[selected[0]] || 'UTC' }));
                     const datasets = selected.map((city,i) => ({
                         label: city,
                         data: dataArr[i].map(h => h.value), // updated to match database schema
