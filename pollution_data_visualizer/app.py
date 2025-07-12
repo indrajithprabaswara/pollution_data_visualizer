@@ -179,21 +179,31 @@ def api_summary():
 def api_coords(city):
     import json, os
     import requests
+    from timezonefinder import TimezoneFinder
     path = os.path.join(os.path.dirname(__file__), 'city_coords.json')
     with open(path) as f:
         coords = json.load(f)
     if city in coords:
-        return jsonify({'lat': coords[city][0], 'lon': coords[city][1]})
+        data = coords[city]
+        if isinstance(data, list):
+            lat, lon = data
+            tz = None
+        else:
+            lat, lon = data['lat'], data['lon']
+            tz = data.get('tz')
+        return jsonify({'lat': lat, 'lon': lon, 'tz': tz})
     try:
         from urllib.parse import quote
         resp = requests.get(Config.BASE_URL.format(quote(city)), timeout=10)
         data = resp.json()
         if data.get('status') == 'ok':
             lat, lon = data['data']['city']['geo']
-            coords[city] = [lat, lon]
+            finder = TimezoneFinder()
+            tz = finder.timezone_at(lat=lat, lng=lon)
+            coords[city] = {"lat": lat, "lon": lon, "tz": tz}
             with open(path, 'w') as f:
                 json.dump(coords, f, indent=2)
-            return jsonify({'lat': lat, 'lon': lon})
+            return jsonify({'lat': lat, 'lon': lon, 'tz': tz})
     except Exception:
         pass
     return jsonify({'error': 'Unknown city'}), 404
@@ -204,7 +214,14 @@ def api_all_coords():
     path = os.path.join(os.path.dirname(__file__), 'city_coords.json')
     with open(path) as f:
         coords = json.load(f)
-    return jsonify(coords)
+    result = {}
+    for city, data in coords.items():
+        if isinstance(data, list):
+            lat, lon = data
+        else:
+            lat, lon = data['lat'], data['lon']
+        result[city] = [lat, lon]
+    return jsonify(result)
 
 @app.route('/metrics')
 def metrics():
