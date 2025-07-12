@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
-    function fetchCityHistory(city, hrs = 48) {
+    function fetchCityHistory(city, hrs = 48, forDetail = false) {
         fetch(`/data/${encodeURIComponent(city)}`) // updated to match database schema
             .then(r => r.json())
             .then(history => {
@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const detailCanvas = document.getElementById('historyChart');
-                if (detailCanvas) {
+                if (detailCanvas && forDetail) {
                     const ctx2 = detailCanvas.getContext('2d');
                     if (detailChart) detailChart.destroy();
                     detailChart = new Chart(ctx2, {
@@ -150,9 +150,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                    interaction: { mode: 'index', intersect: false } }
                     });
                 }
-
-                updatePieChart(city, history);
-                showPollutantBreakdown(city, history);
+                if (forDetail) {
+                    updatePieChart(city, history);
+                    showPollutantBreakdown(city, history);
+                }
             });
     }
 
@@ -214,7 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 card.classList.remove('neon-warning');
             }
             // Only try to draw the history chart if there is data
-            fetchCityHistory(city, 48);
+            fetchCityHistory(city, 48, false);
         }
     }
 
@@ -355,7 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('bar-moderate').style.width = '0%';
         document.getElementById('bar-bad').style.width = '0%';
 
-        fetchCityHistory(city, 168);
+        fetchCityHistory(city, 168, true);
         detailDrawer.show();
     }
 
@@ -403,7 +404,7 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleBtn.addEventListener('click', () => {
             chartType = chartType === 'line' ? 'bar' : 'line';
             if (currentCity) {
-                fetchCityHistory(currentCity, 168);
+                fetchCityHistory(currentCity, 168, true);
             }
         });
     }
