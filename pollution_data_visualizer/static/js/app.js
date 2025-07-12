@@ -158,22 +158,31 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderCityCard(city, data, scroll) {
         const slug = city.toLowerCase().replace(/\s+/g, '');
         let card = document.querySelector(`[data-card="${city}"]`);
+
+        // Check if the data object is valid and has a value
+        const hasData = data && data.value !== undefined;
+        const value = hasData ? data.value.toFixed(2) : 'N/A';
+        const unit = hasData ? data.unit : '';
+        const location = hasData ? data.location : 'N/A';
+        const time = hasData ? new Date(data.utc_datetime).toLocaleString() : 'No recent data';
+
         if (!card) {
             const col = document.createElement('div');
             col.className = 'col-sm-6 col-md-4 fade-in';
+            // Create the card with the data or 'N/A' placeholders
             col.innerHTML = `
                 <div class="card card-hover" data-card="${city}">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start">
-                          <h5 class="card-title">${city}</h5>
-                          <div>
-                            <input class="form-check-input compare-check" type="checkbox" data-city="${city}">
-                            <button class="btn btn-sm btn-outline-primary ms-2 save-btn" data-city="${city}">Save</button>
-                          </div>
+                            <h5 class="card-title">${city}</h5>
+                            <div>
+                                <input class="form-check-input compare-check" type="checkbox" data-city="${city}">
+                                <button class="btn btn-sm btn-outline-primary ms-2 save-btn" data-city="${city}">Save</button>
+                            </div>
                         </div>
-                        <p class="card-text">Value: <span class="aqi">${data.value}</span> ${data.unit}</p> // updated to match database schema
-                        <p class="small">Location: <span class="location">${data.location}</span></p> // updated to match database schema
-                        <p class="small">Time: <span class="utc">${new Date(data.utc_datetime).toLocaleString()}</span></p> // updated to match database schema
+                        <p class="card-text">Value: <span class="aqi">${value}</span> ${unit}</p>
+                        <p class="small">Location: <span class="location">${location}</span></p>
+                        <p class="small">Time: <span class="utc">${time}</span></p>
                         <canvas data-city="${city}"></canvas>
                     </div>
                 </div>`;
@@ -185,29 +194,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 saveCity(city);
             });
             highlightCard(col);
-            if (alerts[city] && data.aqi >= alerts[city]) {
-                col.querySelector('.card').classList.add('neon-warning');
-                showToast(`${city} AQI exceeds ${alerts[city]}`, 'warning', 5000);
-            }
             if (scroll) {
                 card.scrollIntoView({ behavior: 'smooth' });
-                showToast(`Done! See the pollution levels for ${city}`, 'success', 4000);
             }
         } else {
-            card.querySelector('.aqi').textContent = data.value; // updated to match database schema
-            const locEl = card.querySelector('.location');
-            if (locEl) locEl.textContent = data.location; // updated to match database schema
-            const timeEl = card.querySelector('.utc');
-            if (timeEl) timeEl.textContent = new Date(data.utc_datetime).toLocaleString(); // updated to match database schema
+            // Update existing card with new data or placeholders
+            card.querySelector('.aqi').textContent = value;
+            card.querySelector('.location').textContent = location;
+            card.querySelector('.utc').textContent = time;
             highlightCard(card.parentElement);
+        }
+
+        if (hasData) {
             if (alerts[city] && data.value >= alerts[city]) {
                 card.classList.add('neon-warning');
-                showToast(`${city} AQI exceeds ${alerts[city]}`, 'warning', 5000);
+                showToast(`${city} value exceeds ${alerts[city]}`, 'warning', 5000);
             } else {
                 card.classList.remove('neon-warning');
             }
+            // Only try to draw the history chart if there is data
+            fetchCityHistory(city, 48);
         }
-        fetchCityHistory(city, 48);
     }
 
     function highlightCard(element) {
