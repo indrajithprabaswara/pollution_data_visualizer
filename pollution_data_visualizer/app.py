@@ -5,10 +5,11 @@ from events import publish_event, start_consumer
 from config import Config
 from models import db, AirQualityData, Measurement
 from data_collector import collect_data, collect_data_for_multiple_cities
-from data_analyzer import get_average_aqi, get_recent_aqi, get_aqi_history
+from data_analyzer import get_average_aqi, get_recent_aqi, get_aqi_history, _tz_for
 from models import User, FavoriteCity
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from apscheduler.schedulers.background import BackgroundScheduler
 import os
 
@@ -87,13 +88,15 @@ def get_city_data(city):
                .filter_by(city=city)
                .order_by(Measurement.utc_datetime.asc())
                .all())  # updated to OpenAQ v3
+    tz = _tz_for(city)
     return jsonify([
         {
             'city': m.city,
             'location': m.location,
             'value': m.value,
             'unit': m.unit,
-            'utc_datetime': m.utc_datetime.isoformat() + 'Z'
+            'utc_datetime': m.utc_datetime.isoformat() + 'Z',
+            'local_datetime': m.utc_datetime.replace(tzinfo=timezone.utc).astimezone(ZoneInfo(tz)).isoformat() if tz else None
         } for m in records
     ])
 
@@ -115,9 +118,11 @@ def history():
                .filter_by(city=city)
                .order_by(Measurement.utc_datetime.asc())
                .all())  # updated to OpenAQ v3
+    tz = _tz_for(city)
     return jsonify([
         {
             'utc_datetime': m.utc_datetime.isoformat() + 'Z',
+            'local_datetime': m.utc_datetime.replace(tzinfo=timezone.utc).astimezone(ZoneInfo(tz)).isoformat() if tz else None,
             'value': m.value,
             'unit': m.unit,
             'location': m.location
