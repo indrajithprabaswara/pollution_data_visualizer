@@ -25,8 +25,8 @@ def fetch_air_quality(city):
 def save_air_quality_data(city, results):
     if not results:
         return
+    ts = datetime.utcnow()
     first = results[0]
-    ts = datetime.fromisoformat(first['date']['utc'].replace('Z', '+00:00')).replace(tzinfo=None)
     aqi = first.get('value')
     air_quality_data = AirQualityData(
         city=city,
@@ -38,10 +38,9 @@ def save_air_quality_data(city, results):
     )
     db.session.add(air_quality_data)
     for item in results:
-        dt = datetime.fromisoformat(item['date']['utc'].replace('Z', '+00:00')).replace(tzinfo=None)
         measurement = Measurement(
             city=city,
-            utc_datetime=dt,  # updated to OpenAQ v3
+            utc_datetime=ts,
             value=item.get('value'),
             unit=item.get('unit'),
             location=item.get('location'),
