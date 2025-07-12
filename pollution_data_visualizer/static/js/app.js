@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 const latest = history[history.length - 1] || {};
                 renderCityCard(city, latest, scroll); // updated to match database schema
-                fetchCoords(city, latest.value);
+                if (!cityTimezones[city]) fetchCoords(city, latest.value);
                 document.getElementById('loading').style.display = 'none';
             })
             .catch(err => {
@@ -484,6 +484,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(r => r.json())
             .then(coords => {
                 if (coords.error) return;
+                const first = !cityTimezones[city];
                 cityTimezones[city] = coords.tz || 'UTC';
                 if (markers[city]) {
                     markers[city].setLatLng([coords.lat, coords.lon]);
@@ -492,6 +493,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     markers[city] = L.circleMarker([coords.lat, coords.lon], {color: markerColor(aqi)}).addTo(map).bindPopup(`${city} AQI: ${aqi}`);
                     markers[city].on('click', () => openDetail(city));
                 }
+                if (first) fetchCityData(city, false);
             });
     }
 
