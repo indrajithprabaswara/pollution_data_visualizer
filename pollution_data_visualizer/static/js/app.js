@@ -107,6 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const labels = history.map(h => new Date(h.local_timestamp || h.utc_datetime).toLocaleTimeString('en-US', { timeZone: cityTimezones[city] || 'UTC' }));
                 const data = history.map(h => h.value); // updated to match database schema
 
+                if(forDetail && city !== currentCity) return;
                 if (cardCanvas) {
                     const ctx = cardCanvas.getContext('2d');
                     new Chart(ctx, {
@@ -250,14 +251,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('bar-bad').style.width = `${(counts.bad/total)*100}%`;
         const advice = document.querySelector('#advice');
         const latest = history[history.length - 1]?.value || 0; // updated to match database schema
-        let text = 'Nice! Your area is not polluted.';
-        advice.classList.remove('neon-warning');
-        if (latest > 100) {
-            text = 'Warning! It\'s highly polluted in your area. It\'s recommended to wear a mask and stay indoors.';
-            advice.classList.add('neon-warning');
-        } else if (latest > 50) {
-            text = 'Pollution is moderate. Consider using public transport to help reduce pollution.';
-        }
+        const text = aqiMessage(latest);
+        if (latest > 150) advice.classList.add("neon-warning");
+        else advice.classList.remove("neon-warning");
         typeAdvice(text);
     }
 
@@ -318,6 +314,16 @@ document.addEventListener('DOMContentLoaded', () => {
             current += increment;
             if (current >= to) {
                 current = to;
+    function aqiMessage(aqi){
+        if (aqi == null) return "Air quality data unavailable.";
+        if (aqi > 300) return "Health warning of emergency conditions: everyone is more likely to be affected.";
+        if (aqi > 200) return "Health alert: The risk of health effects is increased for everyone.";
+        if (aqi > 150) return "Some members of the general public may experience health effects; members of sensitive groups may experience more serious health effects.";
+        if (aqi > 100) return "Members of sensitive groups may experience health effects. The general public is less likely to be affected.";
+        if (aqi > 50) return "Air quality is acceptable. However, there may be a risk for some people, particularly those who are unusually sensitive to air pollution.";
+        return "Air quality is satisfactory, and air pollution poses little or no risk.";
+    }
+
                 clearInterval(timer);
             }
             element.textContent = current.toFixed(0);
