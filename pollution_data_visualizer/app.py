@@ -93,7 +93,7 @@ def get_city_data(city):
             'location': m.location,
             'value': m.value,
             'unit': m.unit,
-            'utc_datetime': m.utc_datetime.isoformat()
+            'utc_datetime': m.utc_datetime.isoformat() + 'Z'
         } for m in records
     ])
 
@@ -117,7 +117,7 @@ def history():
                .all())  # updated to OpenAQ v3
     return jsonify([
         {
-            'utc_datetime': m.utc_datetime.isoformat(),
+            'utc_datetime': m.utc_datetime.isoformat() + 'Z',
             'value': m.value,
             'unit': m.unit,
             'location': m.location
